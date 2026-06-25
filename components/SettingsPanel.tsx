@@ -14,7 +14,8 @@ export default function SettingsPanel({
   setTheme,
   setSoundOn,
   setPresence,
-  sendEmergency
+  sendEmergency,
+  sendNotice
 }: {
   lang: Lang;
   theme: ThemeKey;
@@ -26,6 +27,7 @@ export default function SettingsPanel({
   setSoundOn: (value: boolean) => void;
   setPresence: (presence: Presence) => void;
   sendEmergency: (message: string) => Promise<void>;
+  sendNotice: (type: 'warning' | 'info', message: string) => Promise<void>;
 }) {
   const t = copy[lang];
   const [emergency, setEmergency] = useState('');
@@ -75,15 +77,26 @@ export default function SettingsPanel({
         <div className="emergency-settings">
           <strong>{t.emergency}</strong>
           <textarea value={emergency} onChange={event => setEmergency(event.target.value)} placeholder={t.emergencyPlaceholder} />
-          <button
-            type="button"
-            onClick={async () => {
-              await sendEmergency(emergency);
-              setEmergency('');
-            }}
-          >
-            {t.sendEmergency}
-          </button>
+          <div className="notice-actions">
+            <button
+              type="button"
+              onClick={async () => {
+                await sendEmergency(emergency);
+                setEmergency('');
+              }}
+            >
+              Warning
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await sendNotice('info', emergency);
+                setEmergency('');
+              }}
+            >
+              Info
+            </button>
+          </div>
         </div>
       )}
     </section>
