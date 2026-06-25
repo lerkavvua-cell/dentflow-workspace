@@ -15,6 +15,7 @@ export default function ChatColumn({
   tasks,
   presence,
   onSend,
+  onDeleteMessage,
   onAddTask,
   onCompleteTask,
   onSelectPatient
@@ -27,6 +28,7 @@ export default function ChatColumn({
   tasks: TaskItem[];
   presence: Presence;
   onSend: (workspace: WorkspaceKey, draft: ComposerDraft) => Promise<void>;
+  onDeleteMessage: (id: string) => Promise<void>;
   onAddTask: (workspace: WorkspaceKey, patientName: string, text: string, materialLink?: string) => Promise<void>;
   onCompleteTask: (id: string) => Promise<void>;
   onSelectPatient: (id: string) => void;
@@ -96,7 +98,7 @@ export default function ChatColumn({
       <div className="message-list" ref={bodyRef}>
         {messages.length === 0 && <p className="muted empty-chat">{t.noMessages}</p>}
         {messages.map(message => (
-          <ChatMessage key={message.id} message={message} currentUser={currentUser} lang={lang} />
+          <ChatMessage key={message.id} message={message} currentUser={currentUser} lang={lang} onDelete={onDeleteMessage} />
         ))}
       </div>
 
