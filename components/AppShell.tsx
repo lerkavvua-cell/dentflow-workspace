@@ -76,7 +76,15 @@ export default function AppShell() {
 
   return (
     <div className="app-shell">
-      <Sidebar lang={lang} activeView={view} setView={setView} currentUser={user} presence={data.presence} />
+      <Sidebar
+        lang={lang}
+        activeView={view}
+        setView={setView}
+        currentUser={user}
+        presence={data.presence}
+        online={data.online}
+        lastSeen={data.lastSeen}
+      />
       <main className="workspace">
         <Header
           lang={lang}
@@ -88,7 +96,10 @@ export default function AppShell() {
           setLang={setLang}
           setTheme={setTheme}
           setPresence={data.setMyPresence}
-          exit={() => setUser(null)}
+          exit={async () => {
+            await data.setMeOffline();
+            setUser(null);
+          }}
         />
         <section className="content-grid">
           <div className="main-panel">
@@ -101,6 +112,7 @@ export default function AppShell() {
                 patients={filtered.patients}
                 tasks={data.tasks}
                 presence={data.presence}
+                online={data.online}
                 onSend={data.sendMessage}
                 onDeleteMessage={data.deleteMessage}
                 onAddTask={data.addTask}
@@ -138,8 +150,8 @@ export default function AppShell() {
       <div className="presence-dock" aria-label="Team presence">
         {users.map(profile => (
           <span key={profile.key}>
-            <i className={`presence-dot ${data.presence[profile.key]}`} />
-            {profile.name}
+            <i className={`presence-dot ${data.online[profile.key] ? 'online' : 'offline'} ${data.presence[profile.key]}`} />
+            {profile.name} · {data.online[profile.key] ? t.online : t.offline}
           </span>
         ))}
       </div>
