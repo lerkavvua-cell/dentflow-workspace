@@ -6,16 +6,18 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
   setDoc,
-  updateDoc
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, firebaseReady, storage } from '@/lib/firebase';
 import { normalizePatientId, users } from '@/lib/dentflow';
-import type { ComposerDraft, FileMeta, Message, Patient, PatientStatus, Presence, UserKey, WorkspaceKey } from '@/types';
+import type { ComposerDraft, FileMeta, Message, Patient, PatientStatus, Presence, TaskItem, UserKey, WorkspaceKey } from '@/types';
 
 const localKey = 'dentflow-v3-local-fallback';
 const now = () => Date.now();
@@ -24,6 +26,7 @@ const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 type LocalData = {
   messages: Message[];
   patients: Patient[];
+  tasks: TaskItem[];
   presence: Record<UserKey, Presence>;
   emergency: string;
 };
@@ -68,6 +71,7 @@ function seedData(): LocalData {
 
   return {
     patients,
+    tasks: [],
     messages: [
       {
         id: 'demo-message',
@@ -95,6 +99,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
   const cloudMode = firebaseReady && Boolean(db);
   const [messages, setMessages] = useState<Message[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [presence, setPresence] = useState<Record<UserKey, Presence>>(defaultPresence);
   const [emergency, setEmergency] = useState('');
 
@@ -146,6 +151,24 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         err => onError(`presence: ${err.message}`)
       );
 
+      const unsubTasks = onSnapshot(
+        query(collection(db, 'tasks'), orderBy('createdAt', 'asc')),
+        snap => {
+          setTasks(
+            snap.docs.map(item => {
+              const data = item.data() as TaskItem;
+              return {
+                ...data,
+                id: item.id,
+                createdAt: toMillis(data.createdAt),
+                completedAt: data.completedAt ? toMillis(data.completedAt) : undefined
+              };
+            })
+          );
+        },
+        err => onError(`tasks: ${err.message}`)
+      );
+
       const unsubEmergency = onSnapshot(
         doc(db, 'system', 'emergency'),
         snap => setEmergency((snap.data()?.text as string) || ''),
@@ -156,6 +179,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         unsubMessages();
         unsubPatients();
         unsubPresence();
+        unsubTasks();
         unsubEmergency();
       };
     }
@@ -163,6 +187,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
     const data = loadLocal() || seedData();
     setMessages(data.messages);
     setPatients(data.patients);
+    setTasks(data.tasks || []);
     setPresence(data.presence);
     setEmergency(data.emergency || '');
 
@@ -171,6 +196,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       if (!next) return;
       setMessages(next.messages);
       setPatients(next.patients);
+      setTasks(next.tasks || []);
       setPresence(next.presence);
       setEmergency(next.emergency || '');
     }, 800);
@@ -180,8 +206,39 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
   useEffect(() => {
     if (!user || cloudMode) return;
-    saveLocal({ messages, patients, presence, emergency });
-  }, [cloudMode, emergency, messages, patients, presence, user]);
+    saveLocal({ messages, patients, tasks, presence, emergency });
+  }, [cloudMode, emergency, messages, patients, presence, tasks, user]);
+
+  const completePatientTasks = useCallback(
+    async (patient: Pick<Patient, 'name' | 'workspace'>) => {
+      const patientName = patient.name.trim().toLowerCase();
+      if (!patientName) return;
+      const completedAt = now();
+
+      setTasks(prev =>
+        prev.map(task =>
+          task.workspace === patient.workspace && task.patientName.trim().toLowerCase() === patientName
+            ? { ...task, done: true, completedAt }
+            : task
+        )
+      );
+
+      if (cloudMode && db) {
+        try {
+          const taskQuery = query(
+            collection(db, 'tasks'),
+            where('workspace', '==', patient.workspace),
+            where('patientNameKey', '==', patientName)
+          );
+          const taskSnap = await getDocs(taskQuery);
+          await Promise.all(taskSnap.docs.map(item => updateDoc(doc(db, 'tasks', item.id), { done: true, completedAt })));
+        } catch (err) {
+          onError(`tasks: ${(err as Error).message}`);
+        }
+      }
+    },
+    [cloudMode, onError]
+  );
 
   const setMyPresence = useCallback(
     async (status: Presence) => {
@@ -302,6 +359,56 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
           onError(`patient: ${(err as Error).message}`);
         }
       }
+
+      const patient = patients.find(item => item.id === id);
+      const status = patch.status;
+      if (patient && (status === 'approved' || status === 'sent' || status === 'archived')) {
+        await completePatientTasks({ ...patient, ...patch });
+      }
+    },
+    [cloudMode, completePatientTasks, onError, patients]
+  );
+
+  const addTask = useCallback(
+    async (workspace: WorkspaceKey, patientName: string, text: string) => {
+      if (!user || !patientName.trim() || !text.trim()) return;
+      const patientNameKey = patientName.trim().toLowerCase();
+      const taskData = {
+        workspace,
+        assignedTo: workspace,
+        patientName: patientName.trim(),
+        patientNameKey,
+        text: text.trim(),
+        done: false,
+        createdAt: now()
+      };
+
+      if (cloudMode && db) {
+        try {
+          await addDoc(collection(db, 'tasks'), taskData);
+          return;
+        } catch (err) {
+          onError(`tasks: ${(err as Error).message}`);
+        }
+      }
+
+      setTasks(prev => [...prev, { id: uid(), ...taskData }]);
+    },
+    [cloudMode, onError, user]
+  );
+
+  const completeTask = useCallback(
+    async (id: string) => {
+      const completedAt = now();
+      setTasks(prev => prev.map(task => (task.id === id ? { ...task, done: true, completedAt } : task)));
+
+      if (cloudMode && db) {
+        try {
+          await updateDoc(doc(db, 'tasks', id), { done: true, completedAt });
+        } catch (err) {
+          onError(`tasks: ${(err as Error).message}`);
+        }
+      }
     },
     [cloudMode, onError]
   );
@@ -325,13 +432,16 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       cloudMode,
       messages,
       patients,
+      tasks,
       presence,
       emergency,
       sendMessage,
       savePatient,
+      addTask,
+      completeTask,
       setMyPresence,
       setSystemEmergency
     }),
-    [cloudMode, emergency, messages, patients, presence, savePatient, sendMessage, setMyPresence, setSystemEmergency]
+    [addTask, cloudMode, completeTask, emergency, messages, patients, presence, savePatient, sendMessage, setMyPresence, setSystemEmergency, tasks]
   );
 }
