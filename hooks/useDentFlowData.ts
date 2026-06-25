@@ -15,7 +15,7 @@ import {
   where
 } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, firebaseReady, storage } from '@/lib/firebase';
+import { db, ensureFirebaseAuth, firebaseReady, storage } from '@/lib/firebase';
 import { normalizePatientId, users } from '@/lib/dentflow';
 import type { ComposerDraft, FileMeta, Message, Patient, PatientStatus, Presence, SystemNotice, TaskItem, UserKey, WorkspaceKey } from '@/types';
 
@@ -136,98 +136,109 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
     }
 
     if (cloudMode && db) {
-      const unsubMessages = onSnapshot(
-        query(collection(db, 'messages'), orderBy('createdAt', 'asc')),
-        snap => {
-          if (snap.empty) return;
-          setMessages(
-            snap.docs.map(item => {
-              const data = item.data() as Message;
-              return { ...data, id: item.id, createdAt: toMillis(data.createdAt) };
-            })
-          );
-        },
-        err => onError(`messages: ${err.message}`)
-      );
+      let closed = false;
+      let cleanup: (() => void) | undefined;
+      ensureFirebaseAuth().then(() => {
+        if (closed || !db) return;
 
-      const unsubPatients = onSnapshot(
-        query(collection(db, 'patients'), orderBy('updatedAt', 'desc')),
-        snap => {
-          if (snap.empty) return;
-          setPatients(
-            snap.docs.map(item => {
-              const data = item.data() as Patient;
-              return {
-                ...data,
-                id: item.id,
-                createdAt: toMillis(data.createdAt),
-                updatedAt: toMillis(data.updatedAt)
-              };
-            })
-          );
-        },
-        err => onError(`patients: ${err.message}`)
-      );
+        const unsubMessages = onSnapshot(
+          query(collection(db, 'messages'), orderBy('createdAt', 'asc')),
+          snap => {
+            if (snap.empty) return;
+            setMessages(
+              snap.docs.map(item => {
+                const data = item.data() as Message;
+                return { ...data, id: item.id, createdAt: toMillis(data.createdAt) };
+              })
+            );
+          },
+          err => onError(`messages: ${err.message}`)
+        );
 
-      const unsubPresence = onSnapshot(
-        collection(db, 'presence'),
-        snap => {
-          const next = { ...defaultPresence };
-          snap.docs.forEach(item => {
-            const key = item.id as UserKey;
-            if (users.some(profile => profile.key === key)) next[key] = item.data().status as Presence;
-          });
-          setPresence(next);
-        },
-        err => onError(`presence: ${err.message}`)
-      );
+        const unsubPatients = onSnapshot(
+          query(collection(db, 'patients'), orderBy('updatedAt', 'desc')),
+          snap => {
+            if (snap.empty) return;
+            setPatients(
+              snap.docs.map(item => {
+                const data = item.data() as Patient;
+                return {
+                  ...data,
+                  id: item.id,
+                  createdAt: toMillis(data.createdAt),
+                  updatedAt: toMillis(data.updatedAt)
+                };
+              })
+            );
+          },
+          err => onError(`patients: ${err.message}`)
+        );
 
-      const unsubTasks = onSnapshot(
-        query(collection(db, 'tasks'), orderBy('createdAt', 'asc')),
-        snap => {
-          if (snap.empty) return;
-          setTasks(
-            snap.docs.map(item => {
-              const data = item.data() as TaskItem;
-              return {
-                ...data,
-                id: item.id,
-                createdAt: toMillis(data.createdAt),
-                completedAt: data.completedAt ? toMillis(data.completedAt) : undefined
-              };
-            })
-          );
-        },
-        err => onError(`tasks: ${err.message}`)
-      );
+        const unsubPresence = onSnapshot(
+          collection(db, 'presence'),
+          snap => {
+            const next = { ...defaultPresence };
+            snap.docs.forEach(item => {
+              const key = item.id as UserKey;
+              if (users.some(profile => profile.key === key)) next[key] = item.data().status as Presence;
+            });
+            setPresence(next);
+          },
+          err => onError(`presence: ${err.message}`)
+        );
 
-      const unsubEmergency = onSnapshot(
-        doc(db, 'system', 'emergency'),
-        snap => setEmergency((snap.data()?.text as string) || ''),
-        err => onError(`system/emergency: ${err.message}`)
-      );
+        const unsubTasks = onSnapshot(
+          query(collection(db, 'tasks'), orderBy('createdAt', 'asc')),
+          snap => {
+            if (snap.empty) return;
+            setTasks(
+              snap.docs.map(item => {
+                const data = item.data() as TaskItem;
+                return {
+                  ...data,
+                  id: item.id,
+                  createdAt: toMillis(data.createdAt),
+                  completedAt: data.completedAt ? toMillis(data.completedAt) : undefined
+                };
+              })
+            );
+          },
+          err => onError(`tasks: ${err.message}`)
+        );
 
-      const unsubNotices = onSnapshot(
-        query(collection(db, 'systemNotices'), orderBy('createdAt', 'desc')),
-        snap => {
-          if (snap.empty) return;
-          setNotices(
-            snap.docs.map(item => {
-              const data = item.data() as SystemNotice;
-              return { ...data, id: item.id, createdAt: toMillis(data.createdAt) };
-            })
-          );
-        },
-        err => onError(`systemNotices: ${err.message}`)
-      );
+        const unsubEmergency = onSnapshot(
+          doc(db, 'system', 'emergency'),
+          snap => setEmergency((snap.data()?.text as string) || ''),
+          err => onError(`system/emergency: ${err.message}`)
+        );
+
+        const unsubNotices = onSnapshot(
+          query(collection(db, 'systemNotices'), orderBy('createdAt', 'desc')),
+          snap => {
+            if (snap.empty) return;
+            setNotices(
+              snap.docs.map(item => {
+                const data = item.data() as SystemNotice;
+                return { ...data, id: item.id, createdAt: toMillis(data.createdAt) };
+              })
+            );
+          },
+          err => onError(`systemNotices: ${err.message}`)
+        );
+
+        cleanup = () => {
+          unsubMessages();
+          unsubPatients();
+          unsubPresence();
+          unsubTasks();
+          unsubEmergency();
+          unsubNotices();
+        };
+      });
 
       return () => {
-        unsubMessages();
-        unsubPatients();
-        unsubPresence();
-        unsubTasks();
-        unsubEmergency();
-        unsubNotices();
+        closed = true;
+        cleanup?.();
       };
     }
 
@@ -279,6 +290,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       if (cloudMode && db) {
         try {
+          await ensureFirebaseAuth();
           const taskQuery = query(
             collection(db, 'tasks'),
             where('workspace', '==', patient.workspace),
@@ -301,6 +313,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       if (cloudMode && db) {
         try {
+          await ensureFirebaseAuth();
           await setDoc(
             doc(db, 'presence', user),
             { status, name: users.find(item => item.key === user)?.name || user, updatedAt: now() },
@@ -338,6 +351,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       if (cloudMode && db) {
         try {
+          await ensureFirebaseAuth();
           const refDoc = doc(db, 'patients', id);
           const existing = await getDoc(refDoc);
           await setDoc(
@@ -366,6 +380,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       const noticeData = { type, text: trimmed, createdAt: now() };
       if (cloudMode && db) {
         try {
+          await ensureFirebaseAuth();
           const saved = await addDoc(collection(db, 'systemNotices'), withoutUndefined(noticeData));
           setNotices(prev => (prev.some(item => item.id === saved.id) ? prev : [{ id: saved.id, ...noticeData }, ...prev].slice(0, 30)));
           return;
@@ -421,6 +436,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       try {
         if (cloudMode && db) {
+          await ensureFirebaseAuth();
           const saved = await addDoc(collection(db, 'messages'), cleanMessageData);
           setMessages(prev => (prev.some(item => item.id === saved.id) ? prev : [...prev, { id: saved.id, ...cleanMessageData }]));
           await upsertPatient(workspace, draft);
@@ -445,6 +461,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       if (cloudMode && db) {
         try {
+          await ensureFirebaseAuth();
           await updateDoc(doc(db, 'patients', id), withoutUndefined(next));
         } catch (err) {
           onError(`patient: ${(err as Error).message}`);
@@ -480,6 +497,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       if (cloudMode && db) {
         try {
+          await ensureFirebaseAuth();
           const saved = await addDoc(collection(db, 'tasks'), withoutUndefined(taskData));
           setTasks(prev => (prev.some(item => item.id === saved.id) ? prev : [...prev, { id: saved.id, ...taskData }]));
           return;
@@ -500,6 +518,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       if (cloudMode && db) {
         try {
+          await ensureFirebaseAuth();
           await updateDoc(doc(db, 'tasks', id), { done: true, completedAt });
         } catch (err) {
           onError(`tasks: ${(err as Error).message}`);
@@ -515,6 +534,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       await addSystemNotice('warning', text);
       if (cloudMode && db) {
         try {
+          await ensureFirebaseAuth();
           await setDoc(doc(db, 'system', 'emergency'), { text, updatedAt: now() }, { merge: true });
         } catch (err) {
           onError(`system/emergency: ${(err as Error).message}`);
