@@ -2,13 +2,18 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'DentFlow Workspace',
-  description: 'Friendly workspace for treatment plan control teams'
+  title: 'DentFlow HQ',
+  description:
+    'Modern AI workspace for treatment planning and dental team collaboration.'
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
+    <html lang="ru" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );
