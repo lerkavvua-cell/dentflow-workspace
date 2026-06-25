@@ -36,6 +36,20 @@ export default function PatientPanel({
                 </option>
               ))}
             </select>
+            <div className="workflow-actions">
+              <button type="button" onClick={() => onSave(patient.id, { status: 'approved' })}>
+                Manager approved
+              </button>
+              <button type="button" onClick={() => onSave(patient.id, { status: 'correction' })}>
+                Correction
+              </button>
+              <button type="button" onClick={() => onSave(patient.id, { status: 'sent' })}>
+                I sent it
+              </button>
+              <button type="button" onClick={() => onSave(patient.id, { status: 'archived' })}>
+                Archive
+              </button>
+            </div>
           </div>
         )}
       </section>
