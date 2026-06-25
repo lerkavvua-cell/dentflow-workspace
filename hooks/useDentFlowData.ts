@@ -17,7 +17,7 @@ import {
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, firebaseReady, storage } from '@/lib/firebase';
 import { normalizePatientId, users } from '@/lib/dentflow';
-import type { ComposerDraft, FileMeta, Message, Patient, PatientStatus, Presence, TaskItem, UserKey, WorkspaceKey } from '@/types';
+import type { ComposerDraft, FileMeta, Message, Patient, PatientStatus, Presence, SystemNotice, TaskItem, UserKey, WorkspaceKey } from '@/types';
 
 const localKey = 'dentflow-v3-local-fallback';
 const archiveKey = 'dentflow-v3-local-archive';
@@ -30,6 +30,7 @@ type LocalData = {
   tasks: TaskItem[];
   presence: Record<UserKey, Presence>;
   emergency: string;
+  notices: SystemNotice[];
 };
 
 const defaultPresence: Record<UserKey, Presence> = {
@@ -55,6 +56,10 @@ function saveLocal(data: LocalData) {
 function saveArchive(data: Pick<LocalData, 'messages' | 'patients' | 'tasks'>) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(archiveKey, JSON.stringify({ ...data, savedAt: now() }));
+}
+
+function withoutUndefined<T extends Record<string, unknown>>(data: T) {
+  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as T;
 }
 
 function seedData(): LocalData {
@@ -89,7 +94,8 @@ function seedData(): LocalData {
       }
     ],
     presence: defaultPresence,
-    emergency: ''
+    emergency: '',
+    notices: []
   };
 }
 
@@ -108,6 +114,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [presence, setPresence] = useState<Record<UserKey, Presence>>(defaultPresence);
   const [emergency, setEmergency] = useState('');
+  const [notices, setNotices] = useState<SystemNotice[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -181,12 +188,26 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         err => onError(`system/emergency: ${err.message}`)
       );
 
+      const unsubNotices = onSnapshot(
+        query(collection(db, 'systemNotices'), orderBy('createdAt', 'desc')),
+        snap => {
+          setNotices(
+            snap.docs.map(item => {
+              const data = item.data() as SystemNotice;
+              return { ...data, id: item.id, createdAt: toMillis(data.createdAt) };
+            })
+          );
+        },
+        err => onError(`systemNotices: ${err.message}`)
+      );
+
       return () => {
         unsubMessages();
         unsubPatients();
         unsubPresence();
         unsubTasks();
         unsubEmergency();
+        unsubNotices();
       };
     }
 
@@ -196,6 +217,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
     setTasks(data.tasks || []);
     setPresence(data.presence);
     setEmergency(data.emergency || '');
+    setNotices(data.notices || []);
 
     const timer = window.setInterval(() => {
       const next = loadLocal();
@@ -205,6 +227,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       setTasks(next.tasks || []);
       setPresence(next.presence);
       setEmergency(next.emergency || '');
+      setNotices(next.notices || []);
     }, 800);
 
     return () => window.clearInterval(timer);
@@ -212,8 +235,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
   useEffect(() => {
     if (!user || cloudMode) return;
-    saveLocal({ messages, patients, tasks, presence, emergency });
-  }, [cloudMode, emergency, messages, patients, presence, tasks, user]);
+    saveLocal({ messages, patients, tasks, presence, emergency, notices });
+  }, [cloudMode, emergency, messages, notices, patients, presence, tasks, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -351,15 +374,16 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         file,
         createdAt: now()
       };
+      const cleanMessageData = withoutUndefined(messageData);
 
       try {
         if (cloudMode && db) {
-          await addDoc(collection(db, 'messages'), messageData);
+          await addDoc(collection(db, 'messages'), cleanMessageData);
           await upsertPatient(workspace, draft);
           return;
         }
 
-        setMessages(prev => [...prev, { id: uid(), ...messageData }]);
+        setMessages(prev => [...prev, { id: uid(), ...cleanMessageData }]);
         await upsertPatient(workspace, draft);
       } catch (err) {
         onError(`send: ${(err as Error).message}`);
@@ -385,9 +409,30 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       const status = patch.status;
       if (patient && (status === 'approved' || status === 'sent' || status === 'archived')) {
         await completePatientTasks({ ...patient, ...patch });
+        if (status === 'approved') {
+          await addSystemNotice('info', `Doctor approved ${patient.name}. Ready to send.`);
+        }
       }
     },
     [cloudMode, completePatientTasks, onError, patients]
+  );
+
+  const addSystemNotice = useCallback(
+    async (type: SystemNotice['type'], text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const noticeData = { type, text: trimmed, createdAt: now() };
+      if (cloudMode && db) {
+        try {
+          await addDoc(collection(db, 'systemNotices'), noticeData);
+          return;
+        } catch (err) {
+          onError(`systemNotices: ${(err as Error).message}`);
+        }
+      }
+      setNotices(prev => [{ id: uid(), ...noticeData }, ...prev].slice(0, 30));
+    },
+    [cloudMode, onError]
   );
 
   const addTask = useCallback(
@@ -438,6 +483,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
   const setSystemEmergency = useCallback(
     async (text: string) => {
       setEmergency(text);
+      await addSystemNotice('warning', text);
       if (cloudMode && db) {
         try {
           await setDoc(doc(db, 'system', 'emergency'), { text, updatedAt: now() }, { merge: true });
@@ -446,7 +492,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         }
       }
     },
-    [cloudMode, onError]
+    [addSystemNotice, cloudMode, onError]
   );
 
   return useMemo(
@@ -457,13 +503,15 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       tasks,
       presence,
       emergency,
+      notices,
       sendMessage,
       savePatient,
       addTask,
       completeTask,
       setMyPresence,
-      setSystemEmergency
+      setSystemEmergency,
+      addSystemNotice
     }),
-    [addTask, cloudMode, completeTask, emergency, messages, patients, presence, savePatient, sendMessage, setMyPresence, setSystemEmergency, tasks]
+    [addSystemNotice, addTask, cloudMode, completeTask, emergency, messages, notices, patients, presence, savePatient, sendMessage, setMyPresence, setSystemEmergency, tasks]
   );
 }
