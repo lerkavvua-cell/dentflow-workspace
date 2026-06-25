@@ -454,6 +454,34 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
     [cloudMode, onError, upsertPatient, user]
   );
 
+  const deleteMessage = useCallback(
+    async (id: string) => {
+      if (!user) return;
+      const patch = cleanData({
+        text: 'Сообщение удалено',
+        patient: '',
+        cardLink: '',
+        canvaLink: '',
+        file: null,
+        deleted: true,
+        deletedAt: now(),
+        deletedBy: user
+      });
+
+      setMessages(prev => prev.map(message => (message.id === id ? { ...message, ...patch } : message)));
+
+      if (cloudMode && db) {
+        try {
+          await ensureFirebaseAuth();
+          await updateDoc(doc(db, 'messages', id), patch);
+        } catch (err) {
+          onError(`delete message: ${(err as Error).message}`);
+        }
+      }
+    },
+    [cloudMode, onError, user]
+  );
+
   const savePatient = useCallback(
     async (id: string, patch: Partial<Patient>) => {
       const next = { ...patch, updatedAt: now() };
@@ -554,6 +582,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       emergency,
       notices,
       sendMessage,
+      deleteMessage,
       savePatient,
       addTask,
       completeTask,
@@ -561,6 +590,6 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       setSystemEmergency,
       addSystemNotice
     }),
-    [addSystemNotice, addTask, cloudMode, completeTask, emergency, messages, notices, patients, presence, savePatient, sendMessage, setMyPresence, setSystemEmergency, tasks]
+    [addSystemNotice, addTask, cloudMode, completeTask, deleteMessage, emergency, messages, notices, patients, presence, savePatient, sendMessage, setMyPresence, setSystemEmergency, tasks]
   );
 }
