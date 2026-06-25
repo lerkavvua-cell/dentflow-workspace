@@ -4,7 +4,7 @@ export const users: Profile[] = [
   { key: 'valeriia', name: 'Valeriia', role: 'Owner' },
   { key: 'behnia', name: 'Behnia', role: 'Planner' },
   { key: 'ilayda', name: 'İlayda', role: 'Planner' },
-  { key: 'manager', name: 'Manager', role: 'Manager' }
+  { key: 'manager', name: 'Fırat', role: 'Manager' }
 ];
 
 export const workspaces: WorkspaceKey[] = ['valeriia', 'behnia', 'ilayda'];
@@ -27,7 +27,14 @@ export const themeNames: Record<ThemeKey, string> = {
   ocean: 'Ocean',
   forest: 'Forest',
   sakura: 'Sakura',
-  night: 'Night'
+  night: 'Night',
+  swamp: 'Dark Swamp',
+  burgundy: 'Dark Burgundy'
+};
+
+export const whatsappTargets: Partial<Record<WorkspaceKey, { name: string; phone: string }>> = {
+  behnia: { name: 'Behnia', phone: '905428752753' },
+  ilayda: { name: 'İlayda', phone: '905422669522' }
 };
 
 export const viewKeys: ViewKey[] = ['today', 'patients', 'chats', 'plans', 'reports', 'settings'];
@@ -99,7 +106,19 @@ export const copy = {
     finished: 'Закончил работу',
     review: 'Проверка',
     correction: 'Коррекция',
-    archived: 'Архив'
+    archived: 'Архив',
+    tasks: 'Задачи',
+    addTask: 'Добавить задачу',
+    taskPlaceholder: 'Пациент и что нужно сделать',
+    patientTaskName: 'Имя и фамилия пациента',
+    done: 'Готово',
+    emergency: 'Экстренное сообщение',
+    emergencyPlaceholder: 'Текст срочного сообщения для всей команды',
+    sendEmergency: 'Показать всем',
+    emergencyTitle: 'Экстренное сообщение',
+    close: 'Закрыть',
+    whatsapp: 'WhatsApp',
+    sendToWhatsapp: 'Открыть WhatsApp'
   },
   en: {
     appTitle: 'DentFlow',
@@ -158,7 +177,19 @@ export const copy = {
     finished: 'Finished',
     review: 'Review',
     correction: 'Correction',
-    archived: 'Archived'
+    archived: 'Archived',
+    tasks: 'Tasks',
+    addTask: 'Add task',
+    taskPlaceholder: 'Patient and what needs to be done',
+    patientTaskName: 'Patient first and last name',
+    done: 'Done',
+    emergency: 'Emergency message',
+    emergencyPlaceholder: 'Urgent message for the whole team',
+    sendEmergency: 'Show to everyone',
+    emergencyTitle: 'Emergency message',
+    close: 'Close',
+    whatsapp: 'WhatsApp',
+    sendToWhatsapp: 'Open WhatsApp'
   },
   tr: {
     appTitle: 'DentFlow',
@@ -217,7 +248,19 @@ export const copy = {
     finished: 'Bitirdi',
     review: 'İnceleme',
     correction: 'Düzeltme',
-    archived: 'Arşiv'
+    archived: 'Arşiv',
+    tasks: 'Görevler',
+    addTask: 'Görev ekle',
+    taskPlaceholder: 'Hasta ve yapılacak iş',
+    patientTaskName: 'Hastanın adı ve soyadı',
+    done: 'Tamam',
+    emergency: 'Acil mesaj',
+    emergencyPlaceholder: 'Tüm ekip için acil mesaj',
+    sendEmergency: 'Herkese göster',
+    emergencyTitle: 'Acil mesaj',
+    close: 'Kapat',
+    whatsapp: 'WhatsApp',
+    sendToWhatsapp: 'WhatsApp aç'
   },
   fa: {
     appTitle: 'DentFlow',
@@ -276,7 +319,19 @@ export const copy = {
     finished: 'کار تمام شد',
     review: 'بررسی',
     correction: 'اصلاح',
-    archived: 'آرشیو'
+    archived: 'آرشیو',
+    tasks: 'وظایف',
+    addTask: 'افزودن وظیفه',
+    taskPlaceholder: 'بیمار و کاری که باید انجام شود',
+    patientTaskName: 'نام و نام خانوادگی بیمار',
+    done: 'انجام شد',
+    emergency: 'پیام اضطراری',
+    emergencyPlaceholder: 'پیام فوری برای همه تیم',
+    sendEmergency: 'نمایش به همه',
+    emergencyTitle: 'پیام اضطراری',
+    close: 'بستن',
+    whatsapp: 'WhatsApp',
+    sendToWhatsapp: 'باز کردن WhatsApp'
   }
 } satisfies Record<Lang, Record<string, string>>;
 
