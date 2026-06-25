@@ -410,18 +410,9 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
           fileType: draft.file.type,
           fileSize: draft.file.size
         };
-
-        if (cloudMode && storage) {
-          try {
-            const storageRef = ref(storage, `attachments/${workspace}/${Date.now()}-${draft.file.name}`);
-            const uploaded = await uploadBytes(storageRef, draft.file);
-            file.fileUrl = await getDownloadURL(uploaded.ref);
-          } catch (err) {
-            onError(`file: ${(err as Error).message}`);
-          }
-        }
       }
 
+      const messageId = uid();
       const messageData: Omit<Message, 'id'> = {
         workspace,
         author: user,
@@ -430,25 +421,42 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         cardLink: draft.cardLink?.trim() || '',
         canvaLink: draft.canvaLink?.trim() || '',
         file,
-        createdAt: now()
+        createdAt: now(),
+        syncState: cloudMode ? 'pending' : 'local'
       };
       const cleanMessageData = cleanData(messageData);
+      setMessages(prev => [...prev, { id: messageId, ...cleanMessageData }]);
+      void upsertPatient(workspace, draft);
 
-      try {
-        if (cloudMode && db) {
+      if (cloudMode && db) {
+        void (async () => {
+          try {
           await ensureFirebaseAuth();
-          const saved = await addDoc(collection(db, 'messages'), cleanData(cleanMessageData));
-          setMessages(prev => (prev.some(item => item.id === saved.id) ? prev : [...prev, { id: saved.id, ...cleanMessageData }]));
-          await upsertPatient(workspace, draft);
-          return;
-        }
-
-        setMessages(prev => [...prev, { id: uid(), ...cleanMessageData }]);
-        await upsertPatient(workspace, draft);
-      } catch (err) {
-        onError(`send: ${(err as Error).message}`);
-        setMessages(prev => [...prev, { id: uid(), ...cleanMessageData }]);
-        await upsertPatient(workspace, draft);
+            let uploadedFile = file;
+            if (draft.file && storage) {
+              const storageRef = ref(storage, `attachments/${workspace}/${Date.now()}-${draft.file.name}`);
+              const uploaded = await uploadBytes(storageRef, draft.file);
+              uploadedFile = { ...file, fileUrl: await getDownloadURL(uploaded.ref) } as FileMeta;
+            }
+            await setDoc(
+              doc(db, 'messages', messageId),
+              cleanData({
+                ...messageData,
+                file: uploadedFile,
+                syncState: 'saved'
+              }),
+              { merge: true }
+            );
+            setMessages(prev =>
+              prev.map(message =>
+                message.id === messageId ? { ...message, file: uploadedFile, syncState: 'saved' } : message
+              )
+            );
+          } catch (err) {
+            onError(`send: ${(err as Error).message}`);
+            setMessages(prev => prev.map(message => (message.id === messageId ? { ...message, syncState: 'local' } : message)));
+          }
+        })();
       }
     },
     [cloudMode, onError, upsertPatient, user]
