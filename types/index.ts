@@ -23,6 +23,9 @@ export type Message = {
   canvaLink?: string;
   file?: FileMeta;
   createdAt: number;
+  deleted?: boolean;
+  deletedAt?: number;
+  deletedBy?: UserKey;
 };
 
 export type Patient = {
