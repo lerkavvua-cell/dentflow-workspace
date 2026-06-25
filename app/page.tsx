@@ -85,6 +85,7 @@ const localKey = 'dentflow-v2-local-fallback';
 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const now = () => Date.now();
+
 const fmt = (n: number) =>
   new Date(n).toLocaleString([], {
     hour: '2-digit',
@@ -112,20 +113,22 @@ export default function Page() {
   const [user, setUser] = useState<UserKey | null>(null);
   const [lang, setLang] = useState<Lang>('ru');
   const [theme, setTheme] = useState('paper');
+
   const [presence, setPresence] = useState<Record<UserKey, Presence>>({
     valeriia: 'here',
     behnia: 'here',
     ilayda: 'here',
     manager: 'here',
   });
+
   const [messages, setMessages] = useState<MessageExtra[]>([]);
   const [patients, setPatients] = useState<PatientExtra[]>([]);
   const [q, setQ] = useState('');
   const [emergency, setEmergency] = useState('');
   const [toast, setToast] = useState('');
   const [activePatientId, setActivePatientId] = useState('');
-  const t = copy[lang];
 
+  const t = copy[lang];
   const cloudMode = firebaseReady && Boolean(db);
 
   useEffect(() => {
@@ -138,17 +141,13 @@ export default function Page() {
     if (cloudMode && db) {
       const unsubMessages = onSnapshot(
         query(collection(db, 'messages'), orderBy('createdAt', 'asc')),
-        snap => {
-          setMessages(snap.docs.map(d => ({ ...(d.data() as MessageExtra), id: d.id })));
-        },
+        snap => setMessages(snap.docs.map(d => ({ ...(d.data() as MessageExtra), id: d.id }))),
         err => showToast(`Messages error: ${err.message}`)
       );
 
       const unsubPatients = onSnapshot(
         query(collection(db, 'patients'), orderBy('updatedAt', 'desc')),
-        snap => {
-          setPatients(snap.docs.map(d => ({ ...(d.data() as PatientExtra), id: d.id })));
-        },
+        snap => setPatients(snap.docs.map(d => ({ ...(d.data() as PatientExtra), id: d.id }))),
         err => showToast(`Patients error: ${err.message}`)
       );
 
@@ -163,8 +162,7 @@ export default function Page() {
           };
 
           snap.docs.forEach(d => {
-            const key = d.id as UserKey;
-            next[key] = d.data().status as Presence;
+            next[d.id as UserKey] = d.data().status as Presence;
           });
 
           setPresence(next);
@@ -187,6 +185,7 @@ export default function Page() {
     }
 
     const data = loadLocal() || seedData();
+
     setMessages(data.messages);
     setPatients(data.patients);
     setPresence(data.presence);
@@ -225,7 +224,11 @@ export default function Page() {
       try {
         await setDoc(
           doc(db, 'presence', user),
-          { status, updatedAt: now(), name: users.find(u => u.key === user)?.name },
+          {
+            status,
+            updatedAt: now(),
+            name: users.find(u => u.key === user)?.name,
+          },
           { merge: true }
         );
       } catch (err: any) {
@@ -314,6 +317,7 @@ export default function Page() {
           createdAt: now(),
           updatedAt: now(),
         };
+
         setPatients(pats => [p, ...pats]);
       }
     }
@@ -326,13 +330,18 @@ export default function Page() {
   async function changePatient(id: string, status: PatientStatus) {
     if (cloudMode && db) {
       try {
-        await updateDoc(doc(db, 'patients', id), { status, updatedAt: now() });
+        await updateDoc(doc(db, 'patients', id), {
+          status,
+          updatedAt: now(),
+        });
       } catch (err: any) {
         showToast(`Patient error: ${err.message}`);
       }
     }
 
-    setPatients(p => p.map(x => (x.id === id ? { ...x, status, updatedAt: now() } : x)));
+    setPatients(p =>
+      p.map(x => (x.id === id ? { ...x, status, updatedAt: now() } : x))
+    );
   }
 
   async function savePatient(id: string, patch: Partial<PatientExtra>) {
@@ -354,7 +363,10 @@ export default function Page() {
 
     if (cloudMode && db) {
       try {
-        await setDoc(doc(db, 'system', 'emergency'), { text, updatedAt: now() });
+        await setDoc(doc(db, 'system', 'emergency'), {
+          text,
+          updatedAt: now(),
+        });
       } catch (err: any) {
         showToast(`Emergency error: ${err.message}`);
       }
@@ -366,7 +378,10 @@ export default function Page() {
 
     if (cloudMode && db) {
       try {
-        await setDoc(doc(db, 'system', 'emergency'), { text: '', updatedAt: now() });
+        await setDoc(doc(db, 'system', 'emergency'), {
+          text: '',
+          updatedAt: now(),
+        });
       } catch (err: any) {
         showToast(`Emergency error: ${err.message}`);
       }
@@ -433,16 +448,21 @@ export default function Page() {
   }
 
   const profile = users.find(u => u.key === user)!;
-  const selectedPatient = patients.find(p => p.id === activePatientId) || filtered.patients[0];
+  const selectedPatient =
+    patients.find(p => p.id === activePatientId) || filtered.patients[0];
 
   const today = new Date().toISOString().slice(0, 10);
-  const createdToday = patients.filter(p => new Date(p.createdAt).toISOString().slice(0, 10) === today).length;
-  const waiting = patients.filter(p => p.status === 'review' || p.status === 'correction').length;
+  const createdToday = patients.filter(
+    p => new Date(p.createdAt).toISOString().slice(0, 10) === today
+  ).length;
+  const waiting = patients.filter(
+    p => p.status === 'review' || p.status === 'correction'
+  ).length;
   const approved = patients.filter(p => p.status === 'approved').length;
   const sent = patients.filter(p => p.status === 'sent').length;
 
   return (
-    <div className="app df-app">
+    <div className="df-app">
       <aside className="df-sidebar">
         <div className="df-logo">
           <div className="df-logo-icon">🦷</div>
@@ -472,6 +492,7 @@ export default function Page() {
 
         <div className="df-team-box">
           <h3>👥 Team Online</h3>
+
           {users.map(member => (
             <div className="df-team-member" key={member.key}>
               <span className={`df-presence ${presence[member.key]}`} />
@@ -501,7 +522,10 @@ export default function Page() {
           </div>
 
           <div className="df-controls">
-            <select value={presence[user]} onChange={e => setMyPresence(e.target.value as Presence)}>
+            <select
+              value={presence[user]}
+              onChange={e => setMyPresence(e.target.value as Presence)}
+            >
               <option value="here">🟢 Я здесь</option>
               <option value="break">☕ Перерыв</option>
               <option value="lunch">🍽️ Обед</option>
@@ -509,7 +533,10 @@ export default function Page() {
               <option value="finished">🌙 Закончил работу</option>
             </select>
 
-            <select value={lang} onChange={e => setLang(e.target.value as Lang)}>
+            <select
+              value={lang}
+              onChange={e => setLang(e.target.value as Lang)}
+            >
               <option value="ru">Русский</option>
               <option value="en">English</option>
               <option value="tr">Türkçe</option>
@@ -534,16 +561,19 @@ export default function Page() {
             <strong>{createdToday}</strong>
             <small>new patients</small>
           </div>
+
           <div>
             <span>Waiting</span>
             <strong>{waiting}</strong>
             <small>doctor / correction</small>
           </div>
+
           <div>
             <span>Approved</span>
             <strong>{approved}</strong>
             <small>plans ready</small>
           </div>
+
           <div>
             <span>Sent</span>
             <strong>{sent}</strong>
@@ -632,27 +662,46 @@ function Login({
               <div className="cloud c2" />
             </>
           )}
+
           {scene === 1 && (
             <>
               <div className="balloon b1">🎈</div>
               <div className="balloon b2">🎈</div>
             </>
           )}
-          {scene === 2 && <div style={{ fontSize: 82, paddingTop: 20 }}>🐶</div>}
+
+          {scene === 2 && (
+            <div style={{ fontSize: 82, paddingTop: 20 }}>🐶</div>
+          )}
         </div>
 
         <h1>{t.welcome} ☀️</h1>
         <p>{t.subtitle}</p>
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 14 }}>
-          <select className="pill" value={lang} onChange={e => setLang(e.target.value as Lang)}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            justifyContent: 'center',
+            marginTop: 14,
+          }}
+        >
+          <select
+            className="pill"
+            value={lang}
+            onChange={e => setLang(e.target.value as Lang)}
+          >
             <option value="ru">Русский</option>
             <option value="en">English</option>
             <option value="tr">Türkçe</option>
             <option value="fa">עברית</option>
           </select>
 
-          <select className="pill" value={theme} onChange={e => setTheme(e.target.value)}>
+          <select
+            className="pill"
+            value={theme}
+            onChange={e => setTheme(e.target.value)}
+          >
             <option value="paper">Paper</option>
             <option value="forest">Forest</option>
             <option value="ocean">Ocean</option>
@@ -699,6 +748,7 @@ function ChatColumn({
   const [sheets, setSheets] = useState('');
   const [panorama, setPanorama] = useState('');
   const [ct, setCt] = useState('');
+
   const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -731,10 +781,10 @@ function ChatColumn({
     presence === 'break' || presence === 'lunch'
       ? 'break'
       : presence === 'busy'
-      ? 'busy'
-      : presence === 'finished'
-      ? 'off'
-      : '';
+        ? 'busy'
+        : presence === 'finished'
+          ? 'off'
+          : '';
 
   return (
     <section className="df-chat-card">
@@ -746,6 +796,7 @@ function ChatColumn({
             {presenceLabels[presence]}
           </span>
         </div>
+
         <small>{messages.length} messages</small>
       </div>
 
@@ -753,7 +804,13 @@ function ChatColumn({
         {patients.slice(0, 6).map(p => (
           <button
             key={p.id}
-            className={`patientchip ${p.status === 'approved' ? 'approved' : p.status === 'sent' ? 'sent' : 'review'}`}
+            className={`patientchip ${
+              p.status === 'approved'
+                ? 'approved'
+                : p.status === 'sent'
+                  ? 'sent'
+                  : 'review'
+            }`}
             onClick={() => onSelectPatient(p.id)}
           >
             {p.name} • {statusLabels[p.status]}
@@ -763,22 +820,55 @@ function ChatColumn({
 
       <div className="messages" ref={bodyRef}>
         {messages.map(m => (
-          <div key={m.id} className={`msg ${m.author === currentUser ? 'mine' : ''}`}>
+          <div
+            key={m.id}
+            className={`msg ${m.author === currentUser ? 'mine' : ''}`}
+          >
             <div className="bubble">
               <div className="meta">
-                {m.author} • {fmt(m.createdAt)} {m.patient ? `• ${m.patient}` : ''}
+                {m.author} • {fmt(m.createdAt)}{' '}
+                {m.patient ? `• ${m.patient}` : ''}
               </div>
 
               <div className="text">{m.text}</div>
 
-              {(m.cardLink || m.canvaLink || m.docsLink || m.sheetsLink || m.panoramaLink || m.ctLink) && (
+              {(m.cardLink ||
+                m.canvaLink ||
+                m.docsLink ||
+                m.sheetsLink ||
+                m.panoramaLink ||
+                m.ctLink) && (
                 <div className="links">
-                  {m.cardLink && <a className="linkbtn" href={m.cardLink} target="_blank">📄 Card</a>}
-                  {m.canvaLink && <a className="linkbtn" href={m.canvaLink} target="_blank">🎨 Canva</a>}
-                  {m.docsLink && <a className="linkbtn" href={m.docsLink} target="_blank">📝 Docs</a>}
-                  {m.sheetsLink && <a className="linkbtn" href={m.sheetsLink} target="_blank">📊 Sheets</a>}
-                  {m.panoramaLink && <a className="linkbtn" href={m.panoramaLink} target="_blank">🦷 Panorama</a>}
-                  {m.ctLink && <a className="linkbtn" href={m.ctLink} target="_blank">🧠 CT</a>}
+                  {m.cardLink && (
+                    <a className="linkbtn" href={m.cardLink} target="_blank">
+                      📄 Card
+                    </a>
+                  )}
+                  {m.canvaLink && (
+                    <a className="linkbtn" href={m.canvaLink} target="_blank">
+                      🎨 Canva
+                    </a>
+                  )}
+                  {m.docsLink && (
+                    <a className="linkbtn" href={m.docsLink} target="_blank">
+                      📝 Docs
+                    </a>
+                  )}
+                  {m.sheetsLink && (
+                    <a className="linkbtn" href={m.sheetsLink} target="_blank">
+                      📊 Sheets
+                    </a>
+                  )}
+                  {m.panoramaLink && (
+                    <a className="linkbtn" href={m.panoramaLink} target="_blank">
+                      🦷 Panorama
+                    </a>
+                  )}
+                  {m.ctLink && (
+                    <a className="linkbtn" href={m.ctLink} target="_blank">
+                      🧠 CT
+                    </a>
+                  )}
                 </div>
               )}
             </div>
@@ -806,7 +896,7 @@ function ChatColumn({
           <input value={docs} onChange={e => setDocs(e.target.value)} placeholder="Google Docs" />
           <input value={sheets} onChange={e => setSheets(e.target.value)} placeholder="Google Sheets" />
           <input value={panorama} onChange={e => setPanorama(e.target.value)} placeholder="Panorama" />
-          <input value={ct} onChange={e => setCt(e.target.value)} placeholder="CT" />
+          <input value={ct} onChange={e => setCt(e.target.value)} placeholder="CT / Tomography" />
           <button onClick={submit}>Send</button>
         </div>
       </div>
@@ -842,7 +932,18 @@ function PatientPanel({
 
   function report() {
     const rows = [
-      ['Patient', 'Doctor', 'Agent', 'Status', 'Canva', 'Docs', 'Sheets', 'Panorama', 'CT', 'Notes'],
+      [
+        'Patient',
+        'Doctor',
+        'Agent',
+        'Status',
+        'Canva',
+        'Docs',
+        'Sheets',
+        'Panorama',
+        'CT',
+        'Notes',
+      ],
       ...patients.map(p => [
         p.name,
         p.doctor || '',
@@ -857,13 +958,25 @@ function PatientPanel({
       ]),
     ];
 
-    download(`DentFlow_Report_${today}.csv`, rows.map(r => r.join(',')).join('\n'), 'text/csv');
+    download(
+      `DentFlow_Report_${today}.csv`,
+      rows.map(r => r.join(',')).join('\n'),
+      'text/csv'
+    );
   }
 
   function backup() {
     download(
       `DentFlow_Backup_${today}.json`,
-      JSON.stringify({ patients, messages, exportedAt: new Date().toISOString() }, null, 2),
+      JSON.stringify(
+        {
+          patients,
+          messages,
+          exportedAt: new Date().toISOString(),
+        },
+        null,
+        2
+      ),
       'application/json'
     );
   }
@@ -877,21 +990,79 @@ function PatientPanel({
 
         {patient && (
           <div className="df-patient-form">
-            <input value={patient.name || ''} onChange={e => onSave(patient.id, { name: e.target.value })} placeholder="Patient name" />
-            <input value={patient.doctor || ''} onChange={e => onSave(patient.id, { doctor: e.target.value })} placeholder="Doctor" />
-            <input value={patient.agent || ''} onChange={e => onSave(patient.id, { agent: e.target.value })} placeholder="Agent" />
-            <input value={patient.planLabel || ''} onChange={e => onSave(patient.id, { planLabel: e.target.value })} placeholder="Plan label / short note" />
-            <input value={patient.cardLink || ''} onChange={e => onSave(patient.id, { cardLink: e.target.value })} placeholder="Patient card" />
-            <input value={patient.canvaLink || ''} onChange={e => onSave(patient.id, { canvaLink: e.target.value })} placeholder="Canva" />
-            <input value={patient.docsLink || ''} onChange={e => onSave(patient.id, { docsLink: e.target.value })} placeholder="Google Docs" />
-            <input value={patient.sheetsLink || ''} onChange={e => onSave(patient.id, { sheetsLink: e.target.value })} placeholder="Google Sheets" />
-            <input value={patient.panoramaLink || ''} onChange={e => onSave(patient.id, { panoramaLink: e.target.value })} placeholder="Panorama" />
-            <input value={patient.ctLink || ''} onChange={e => onSave(patient.id, { ctLink: e.target.value })} placeholder="CT / Tomography" />
+            <input
+              value={patient.name || ''}
+              onChange={e => onSave(patient.id, { name: e.target.value })}
+              placeholder="Patient name"
+            />
 
-            <textarea value={patient.notes || ''} onChange={e => onSave(patient.id, { notes: e.target.value })} placeholder="Notes" />
+            <input
+              value={patient.doctor || ''}
+              onChange={e => onSave(patient.id, { doctor: e.target.value })}
+              placeholder="Doctor"
+            />
 
-            <select value={patient.status} onChange={e => onSave(patient.id, { status: e.target.value as PatientStatus })}>
-              <option value="review">Review</option>
+            <input
+              value={patient.agent || ''}
+              onChange={e => onSave(patient.id, { agent: e.target.value })}
+              placeholder="Agent"
+            />
+
+            <input
+              value={patient.planLabel || ''}
+              onChange={e => onSave(patient.id, { planLabel: e.target.value })}
+              placeholder="Plan label / short note"
+            />
+
+            <input
+              value={patient.cardLink || ''}
+              onChange={e => onSave(patient.id, { cardLink: e.target.value })}
+              placeholder="Patient card"
+            />
+
+            <input
+              value={patient.canvaLink || ''}
+              onChange={e => onSave(patient.id, { canvaLink: e.target.value })}
+              placeholder="Canva"
+            />
+
+            <input
+              value={patient.docsLink || ''}
+              onChange={e => onSave(patient.id, { docsLink: e.target.value })}
+              placeholder="Google Docs"
+            />
+
+            <input
+              value={patient.sheetsLink || ''}
+              onChange={e => onSave(patient.id, { sheetsLink: e.target.value })}
+              placeholder="Google Sheets"
+            />
+
+            <input
+              value={patient.panoramaLink || ''}
+              onChange={e => onSave(patient.id, { panoramaLink: e.target.value })}
+              placeholder="Panorama"
+            />
+
+            <input
+              value={patient.ctLink || ''}
+              onChange={e => onSave(patient.id, { ctLink: e.target.value })}
+              placeholder="CT / Tomography"
+            />
+
+            <textarea
+              value={patient.notes || ''}
+              onChange={e => onSave(patient.id, { notes: e.target.value })}
+              placeholder="Notes"
+            />
+
+            <select
+              value={patient.status}
+              onChange={e =>
+                onSave(patient.id, { status: e.target.value as PatientStatus })
+              }
+            >
+              <option value="review">Review / Waiting</option>
               <option value="correction">Correction</option>
               <option value="approved">Approved</option>
               <option value="sent">Sent to agent</option>
@@ -918,8 +1089,19 @@ function PatientPanel({
 
           <div className="card">
             <h3>Emergency</h3>
-            <input value={em} onChange={e => setEm(e.target.value)} placeholder="Important message for all" />
-            <button onClick={() => { onEmergency(em); setEm(''); }}>Send Emergency</button>
+            <input
+              value={em}
+              onChange={e => setEm(e.target.value)}
+              placeholder="Important message for all"
+            />
+            <button
+              onClick={() => {
+                onEmergency(em);
+                setEm('');
+              }}
+            >
+              Send Emergency
+            </button>
           </div>
         </>
       )}
@@ -962,7 +1144,12 @@ function seedData() {
   return {
     patients,
     messages,
-    presence: { valeriia: 'here', behnia: 'here', ilayda: 'break', manager: 'here' },
+    presence: {
+      valeriia: 'here',
+      behnia: 'here',
+      ilayda: 'break',
+      manager: 'here',
+    },
     emergency: '',
   };
 }
