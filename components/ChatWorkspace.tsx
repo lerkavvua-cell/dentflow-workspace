@@ -12,6 +12,7 @@ export default function ChatWorkspace({
   tasks,
   presence,
   onSend,
+  onDeleteMessage,
   onAddTask,
   onCompleteTask,
   onSelectPatient
@@ -23,6 +24,7 @@ export default function ChatWorkspace({
   tasks: TaskItem[];
   presence: Record<UserKey, Presence>;
   onSend: (workspace: WorkspaceKey, draft: ComposerDraft) => Promise<void>;
+  onDeleteMessage: (id: string) => Promise<void>;
   onAddTask: (workspace: WorkspaceKey, patientName: string, text: string, materialLink?: string) => Promise<void>;
   onCompleteTask: (id: string) => Promise<void>;
   onSelectPatient: (id: string) => void;
@@ -40,6 +42,7 @@ export default function ChatWorkspace({
           tasks={tasks.filter(task => task.workspace === workspace && !task.done)}
           presence={presence[workspace]}
           onSend={onSend}
+          onDeleteMessage={onDeleteMessage}
           onAddTask={onAddTask}
           onCompleteTask={onCompleteTask}
           onSelectPatient={onSelectPatient}
