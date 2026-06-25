@@ -38,16 +38,16 @@ export default function PatientPanel({
             </select>
             <div className="workflow-actions">
               <button type="button" onClick={() => onSave(patient.id, { status: 'approved' })}>
-                Manager approved
+                Менеджер подтвердил
               </button>
               <button type="button" onClick={() => onSave(patient.id, { status: 'correction' })}>
-                Correction
+                На коррекцию
               </button>
               <button type="button" onClick={() => onSave(patient.id, { status: 'sent' })}>
-                I sent it
+                Я отправила
               </button>
               <button type="button" onClick={() => onSave(patient.id, { status: 'archived' })}>
-                Archive
+                В архив
               </button>
             </div>
           </div>
