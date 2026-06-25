@@ -20,12 +20,14 @@ export default function ChatMessage({
   message,
   currentUser,
   lang,
-  onDelete
+  onDelete,
+  onSelectPatient
 }: {
   message: Message;
   currentUser: UserKey;
   lang: Lang;
   onDelete: (id: string) => Promise<void>;
+  onSelectPatient?: (patientName: string) => void;
 }) {
   const t = copy[lang];
   const author = users.find(item => item.key === message.author)?.name || message.author;
@@ -38,7 +40,11 @@ export default function ChatMessage({
         <div className="message-meta">
           <span>{author}</span>
           <span>{formatTime(message.createdAt)}</span>
-          {message.patient && <span>{message.patient}</span>}
+          {message.patient && (
+            <button type="button" className="patient-open" onClick={() => onSelectPatient?.(message.patient || '')}>
+              {message.patient}
+            </button>
+          )}
           {message.syncState === 'local' && <span className="sync-state">локально</span>}
           {message.syncState === 'pending' && <span className="sync-state">сохраняется</span>}
           {canDelete && (
@@ -51,7 +57,14 @@ export default function ChatMessage({
         {!message.deleted && (message.cardLink || message.canvaLink || message.file) && (
           <div className="message-links">
             {message.cardLink && (
-              <a href={message.cardLink} target="_blank" rel="noreferrer">
+              <a
+                href={message.cardLink}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  if (message.patient) onSelectPatient?.(message.patient);
+                }}
+              >
                 {t.patientCard}
               </a>
             )}
