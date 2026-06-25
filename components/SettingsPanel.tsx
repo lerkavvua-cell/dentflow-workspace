@@ -1,28 +1,34 @@
 'use client';
 
+import { useState } from 'react';
 import { copy, languageNames, presenceKeys, themeNames } from '@/lib/dentflow';
-import type { Lang, Presence, ThemeKey } from '@/types';
+import type { Lang, Presence, ThemeKey, UserKey } from '@/types';
 
 export default function SettingsPanel({
   lang,
   theme,
   soundOn,
   presence,
+  currentUser,
   setLang,
   setTheme,
   setSoundOn,
-  setPresence
+  setPresence,
+  sendEmergency
 }: {
   lang: Lang;
   theme: ThemeKey;
   soundOn: boolean;
   presence: Presence;
+  currentUser: UserKey;
   setLang: (lang: Lang) => void;
   setTheme: (theme: ThemeKey) => void;
   setSoundOn: (value: boolean) => void;
   setPresence: (presence: Presence) => void;
+  sendEmergency: (message: string) => Promise<void>;
 }) {
   const t = copy[lang];
+  const [emergency, setEmergency] = useState('');
 
   return (
     <section className="panel settings-panel">
@@ -65,6 +71,21 @@ export default function SettingsPanel({
           {soundOn ? t.on : t.off}
         </button>
       </label>
+      {currentUser === 'valeriia' && (
+        <div className="emergency-settings">
+          <strong>{t.emergency}</strong>
+          <textarea value={emergency} onChange={event => setEmergency(event.target.value)} placeholder={t.emergencyPlaceholder} />
+          <button
+            type="button"
+            onClick={async () => {
+              await sendEmergency(emergency);
+              setEmergency('');
+            }}
+          >
+            {t.sendEmergency}
+          </button>
+        </div>
+      )}
     </section>
   );
 }
