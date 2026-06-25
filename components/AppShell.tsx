@@ -43,6 +43,10 @@ export default function AppShell() {
     document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
   }, [lang, theme]);
 
+  useEffect(() => {
+    if (user && user !== 'valeriia' && view === 'reports') setView('chats');
+  }, [user, view]);
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return { patients: data.patients, messages: data.messages };
@@ -94,24 +98,29 @@ export default function AppShell() {
                 currentUser={user}
                 messages={filtered.messages}
                 patients={filtered.patients}
+                tasks={data.tasks}
                 presence={data.presence}
                 onSend={data.sendMessage}
+                onAddTask={data.addTask}
+                onCompleteTask={data.completeTask}
                 onSelectPatient={setActivePatientId}
               />
             )}
             {view === 'patients' && <PatientsView lang={lang} patients={filtered.patients} onSelectPatient={setActivePatientId} />}
             {view === 'plans' && <PlansView lang={lang} patients={filtered.patients} onSelectPatient={setActivePatientId} />}
-            {view === 'reports' && <ReportsPanel lang={lang} patients={filtered.patients} messages={filtered.messages} />}
+            {view === 'reports' && user === 'valeriia' && <ReportsPanel lang={lang} patients={filtered.patients} messages={filtered.messages} />}
             {view === 'settings' && (
               <SettingsPanel
                 lang={lang}
                 theme={theme}
                 soundOn={soundOn}
                 presence={data.presence[user]}
+                currentUser={user}
                 setLang={setLang}
                 setTheme={setTheme}
                 setSoundOn={setSoundOn}
                 setPresence={data.setMyPresence}
+                sendEmergency={data.setSystemEmergency}
               />
             )}
           </div>
@@ -120,11 +129,11 @@ export default function AppShell() {
       </main>
 
       {data.emergency && (
-        <div className="modal-backdrop">
-          <div className="modal-card">
-            <h2>{t.systemError}</h2>
+        <div className="emergency-backdrop">
+          <div className="emergency-card">
+            <h2>{t.emergencyTitle}</h2>
             <p>{data.emergency}</p>
-            <button onClick={() => data.setSystemEmergency('')}>{t.approved}</button>
+            <button onClick={() => data.setSystemEmergency('')}>{t.close}</button>
           </div>
         </div>
       )}
