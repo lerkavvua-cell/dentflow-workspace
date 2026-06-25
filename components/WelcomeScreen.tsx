@@ -32,11 +32,11 @@ export default function WelcomeScreen({
 
   function enter() {
     if (!email.includes('@')) {
-      setError('Enter work email');
+      setError(t.emailError);
       return;
     }
     if (accessCodes[selectedUser] !== code.trim()) {
-      setError('Wrong 3-digit code');
+      setError(t.codeError);
       return;
     }
     localStorage.setItem('dentflow-current-email', email.trim());
@@ -61,7 +61,7 @@ export default function WelcomeScreen({
         </div>
         <h1>{t.welcome}</h1>
         <p>{t.welcomeText}</p>
-        <p className="welcome-note">Choose your name, enter your email and start the day gently.</p>
+        <p className="welcome-note">{t.welcomeNote}</p>
 
         <div className="welcome-controls">
           <label>
@@ -98,11 +98,11 @@ export default function WelcomeScreen({
           ))}
         </div>
         <div className="access-form">
-          <input value={email} onChange={event => setEmail(event.target.value)} placeholder="Work email" />
-          <input value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 3))} placeholder="3-digit code" inputMode="numeric" />
-          <button type="button" onClick={enter}>Enter DentFlow</button>
+          <input value={email} onChange={event => setEmail(event.target.value)} placeholder={t.email} />
+          <input value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 3))} placeholder={t.code} inputMode="numeric" />
+          <button type="button" onClick={enter}>{t.enter}</button>
           <a href={`mailto:${ownerEmail}?subject=DentFlow registration&body=Name: ${selectedUser}%0AEmail: ${email}`}>
-            Request access
+            {t.requestAccess}
           </a>
           {error && <small>{error}</small>}
         </div>
