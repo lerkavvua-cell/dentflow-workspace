@@ -514,6 +514,11 @@ a { color: inherit; }
   box-shadow: 0 12px 34px rgba(239, 75, 95, .16);
 }
 
+.message-row.deleted .message-bubble {
+  opacity: .72;
+  background: color-mix(in srgb, var(--muted) 9%, var(--other));
+}
+
 .message-bubble {
   max-width: 92%;
   border: 1px solid var(--line);
@@ -532,6 +537,15 @@ a { color: inherit; }
   flex-wrap: wrap;
   gap: 7px;
   margin-bottom: 5px;
+}
+
+.message-meta button {
+  border-radius: 999px;
+  padding: 3px 7px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .message-bubble p {
