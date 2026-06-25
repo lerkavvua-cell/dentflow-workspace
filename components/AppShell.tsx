@@ -121,6 +121,7 @@ export default function AppShell() {
                 setSoundOn={setSoundOn}
                 setPresence={data.setMyPresence}
                 sendEmergency={data.setSystemEmergency}
+                sendNotice={data.addSystemNotice}
               />
             )}
           </div>
@@ -128,15 +129,8 @@ export default function AppShell() {
         </section>
       </main>
 
-      {data.emergency && (
-        <div className="emergency-backdrop">
-          <div className="emergency-card">
-            <h2>{t.emergencyTitle}</h2>
-            <p>{data.emergency}</p>
-            <button onClick={() => data.setSystemEmergency('')}>{t.close}</button>
-          </div>
-        </div>
-      )}
+      {data.emergency && <SoftAlert title={t.emergencyTitle} text={data.emergency} close={() => data.setSystemEmergency('')} />}
+      <NoticeFeed notices={data.notices} />
       {toast && <div className="toast">{toast}</div>}
       <NotificationCenter notice={notice} label={t.newMessage} />
       <div className="presence-dock" aria-label="Team presence">
@@ -148,6 +142,30 @@ export default function AppShell() {
         ))}
       </div>
     </div>
+  );
+}
+
+function SoftAlert({ title, text, close }: { title: string; text: string; close: () => void }) {
+  return (
+    <aside className="soft-alert">
+      <strong>{title}</strong>
+      <p>{text}</p>
+      <button type="button" onClick={close}>OK</button>
+    </aside>
+  );
+}
+
+function NoticeFeed({ notices }: { notices: { id: string; type: 'warning' | 'info'; text: string; createdAt: number }[] }) {
+  if (notices.length === 0) return null;
+  return (
+    <aside className="notice-feed">
+      <strong>Important</strong>
+      <div>
+        {notices.slice(0, 8).map(notice => (
+          <p className={notice.type} key={notice.id}>{notice.text}</p>
+        ))}
+      </div>
+    </aside>
   );
 }
 
