@@ -5,7 +5,6 @@ import {
   addDoc,
   collection,
   doc,
-  getDoc,
   getDocs,
   onSnapshot,
   orderBy,
@@ -113,6 +112,22 @@ function toMillis(value: unknown) {
   return now();
 }
 
+function mergeById<T extends { id: string }>(current: T[], incoming: T[]) {
+  const map = new Map(current.map(item => [item.id, item]));
+  incoming.forEach(item => {
+    map.set(item.id, { ...(map.get(item.id) || {}), ...item });
+  });
+  return Array.from(map.values());
+}
+
+function byCreatedAt(a: { createdAt: number }, b: { createdAt: number }) {
+  return a.createdAt - b.createdAt;
+}
+
+function byUpdatedAtDesc(a: { updatedAt: number }, b: { updatedAt: number }) {
+  return b.updatedAt - a.updatedAt;
+}
+
 export function useDentFlowData(user: UserKey | null, onError: (message: string) => void) {
   const cloudMode = firebaseReady && Boolean(db);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -145,12 +160,11 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
           query(collection(db, 'messages'), orderBy('createdAt', 'asc')),
           snap => {
             if (snap.empty) return;
-            setMessages(
-              snap.docs.map(item => {
+            const cloudMessages = snap.docs.map(item => {
                 const data = item.data() as Message;
                 return { ...data, id: item.id, createdAt: toMillis(data.createdAt) };
-              })
-            );
+              });
+            setMessages(prev => mergeById(prev, cloudMessages).sort(byCreatedAt));
           },
           err => onError(`messages: ${err.message}`)
         );
@@ -159,8 +173,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
           query(collection(db, 'patients'), orderBy('updatedAt', 'desc')),
           snap => {
             if (snap.empty) return;
-            setPatients(
-              snap.docs.map(item => {
+            const cloudPatients = snap.docs.map(item => {
                 const data = item.data() as Patient;
                 return {
                   ...data,
@@ -168,8 +181,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
                   createdAt: toMillis(data.createdAt),
                   updatedAt: toMillis(data.updatedAt)
                 };
-              })
-            );
+              });
+            setPatients(prev => mergeById(prev, cloudPatients).sort(byUpdatedAtDesc));
           },
           err => onError(`patients: ${err.message}`)
         );
@@ -191,8 +204,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
           query(collection(db, 'tasks'), orderBy('createdAt', 'asc')),
           snap => {
             if (snap.empty) return;
-            setTasks(
-              snap.docs.map(item => {
+            const cloudTasks = snap.docs.map(item => {
                 const data = item.data() as TaskItem;
                 return {
                   ...data,
@@ -200,8 +212,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
                   createdAt: toMillis(data.createdAt),
                   completedAt: data.completedAt ? toMillis(data.completedAt) : undefined
                 };
-              })
-            );
+              });
+            setTasks(prev => mergeById(prev, cloudTasks).sort(byCreatedAt));
           },
           err => onError(`tasks: ${err.message}`)
         );
@@ -353,15 +365,11 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         try {
           await ensureFirebaseAuth();
           const refDoc = doc(db, 'patients', id);
-          const existing = await getDoc(refDoc);
           await setDoc(
             refDoc,
             cleanData({
               ...patch,
-              doctor: existing.data()?.doctor || '',
-              agent: existing.data()?.agent || '',
-              notes: existing.data()?.notes || '',
-              createdAt: existing.exists() ? existing.data()?.createdAt || createdAt : createdAt
+              createdAt
             }),
             { merge: true }
           );
