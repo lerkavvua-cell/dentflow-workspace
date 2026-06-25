@@ -1,6 +1,8 @@
 export type UserKey = 'valeriia' | 'behnia' | 'ilayda' | 'manager';
 export type WorkspaceKey = 'valeriia' | 'behnia' | 'ilayda';
 export type Presence = 'here' | 'break' | 'lunch' | 'busy' | 'finished';
+export type OnlineMap = Record<UserKey, boolean>;
+export type LastSeenMap = Record<UserKey, number>;
 export type PatientStatus = 'review' | 'correction' | 'approved' | 'sent' | 'archived';
 export type Lang = 'ru' | 'en' | 'tr' | 'fa';
 export type ViewKey = 'today' | 'patients' | 'chats' | 'plans' | 'reports' | 'settings';
