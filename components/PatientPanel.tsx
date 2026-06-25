@@ -24,7 +24,7 @@ export default function PatientPanel({
         {patient && (
           <div className="patient-form">
             <div className={`patient-status-card ${patient.status}`}>
-              <span>Статус</span>
+              <span>{t.status}</span>
               <strong>{t[patient.status]}</strong>
             </div>
             <input value={patient.name || ''} onChange={event => onSave(patient.id, { name: event.target.value })} placeholder={t.patientName} />
