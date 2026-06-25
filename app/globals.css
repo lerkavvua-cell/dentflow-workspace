@@ -370,9 +370,9 @@ a { color: inherit; }
 }
 
 .task-board {
-  padding: 12px;
+  padding: 8px 10px;
   display: grid;
-  gap: 9px;
+  gap: 6px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent);
 }
@@ -384,8 +384,8 @@ a { color: inherit; }
 }
 
 .task-title span {
-  min-width: 24px;
-  height: 24px;
+  min-width: 20px;
+  height: 20px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -408,7 +408,8 @@ a { color: inherit; }
   border: 1px solid var(--line);
   background: var(--panel-strong);
   color: var(--text);
-  padding: 9px 11px;
+  padding: 7px 9px;
+  font-size: 12px;
 }
 
 .task-form button,
@@ -422,8 +423,8 @@ a { color: inherit; }
 
 .task-list {
   display: grid;
-  gap: 7px;
-  max-height: 160px;
+  gap: 5px;
+  max-height: 96px;
   overflow: auto;
 }
 
@@ -432,8 +433,8 @@ a { color: inherit; }
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
   align-items: center;
-  padding: 9px;
-  border-radius: 16px;
+  padding: 6px 7px;
+  border-radius: 13px;
   border: 1px solid var(--line);
   background: var(--panel-strong);
 }
@@ -450,7 +451,8 @@ a { color: inherit; }
 
 .task-item button {
   border-radius: 999px;
-  padding: 8px 10px;
+  padding: 6px 8px;
+  font-size: 12px;
 }
 
 .task-item a {
@@ -570,13 +572,13 @@ a { color: inherit; }
 }
 
 .composer {
-  padding: 12px;
+  padding: 9px 10px;
   border-top: 1px solid var(--line);
 }
 
 .composer textarea {
-  min-height: 56px;
-  max-height: 126px;
+  min-height: 44px;
+  max-height: 96px;
   resize: vertical;
 }
 
@@ -587,9 +589,26 @@ a { color: inherit; }
   margin-top: 8px;
 }
 
-.send-button { grid-column: 1 / -1; }
+.send-button { grid-column: 1 / -1; min-height: 40px; }
 .hidden-file { display: none; }
 .file-button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.file-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.file-control .file-button {
+  min-width: 0;
+}
+
+.remove-file {
+  width: 38px;
+  padding: 0;
+  color: #fff !important;
+  background: var(--danger) !important;
+}
 
 .patient-panel {
   min-height: 0;
@@ -800,6 +819,76 @@ a { color: inherit; }
   animation: emergencyPulse 1.4s ease-in-out infinite;
 }
 
+.soft-alert {
+  position: fixed;
+  right: 22px;
+  top: 104px;
+  z-index: 55;
+  width: min(360px, calc(100vw - 44px));
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(239, 75, 95, .24);
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel-strong) 94%, white);
+  box-shadow: 0 18px 48px rgba(80, 30, 45, .16);
+  animation: slideUp .3s ease;
+}
+
+.soft-alert strong {
+  color: var(--danger);
+}
+
+.soft-alert p {
+  margin: 8px 0 12px;
+  line-height: 1.45;
+}
+
+.soft-alert button {
+  border-radius: 999px;
+  padding: 9px 14px;
+  color: white;
+  background: var(--danger);
+  font-weight: 900;
+}
+
+.notice-feed {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 27;
+  width: min(310px, calc(100vw - 40px));
+  max-height: 260px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel-strong) 94%, transparent);
+  box-shadow: var(--soft);
+  backdrop-filter: blur(16px);
+}
+
+.notice-feed > div {
+  display: grid;
+  gap: 7px;
+  overflow: auto;
+}
+
+.notice-feed p {
+  margin: 0;
+  padding: 8px 9px;
+  border-radius: 12px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.notice-feed p.warning {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border: 1px solid rgba(239, 75, 95, .22);
+}
+
 .modal-card {
   width: min(520px, calc(100vw - 32px));
   border-radius: 26px;
@@ -894,6 +983,15 @@ a { color: inherit; }
 }
 
 .welcome-panel p { color: var(--muted); }
+.welcome-note {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--text) !important;
+  background: color-mix(in srgb, var(--accent-2) 12%, white);
+  font-weight: 800;
+}
 
 .welcome-scene {
   height: 148px;
@@ -1036,12 +1134,19 @@ a { color: inherit; }
   background: var(--panel-strong);
 }
 
-.access-form button {
+.access-form button,
+.access-form a {
   grid-column: 1 / -1;
   color: white;
   font-weight: 900;
   background: linear-gradient(145deg, var(--accent), var(--accent-2));
   box-shadow: inset 0 2px 0 rgba(255,255,255,.28), inset 0 -12px 18px rgba(0,0,0,.12), var(--soft);
+}
+
+.access-form a {
+  display: block;
+  text-align: center;
+  text-decoration: none;
 }
 
 .access-form small {
@@ -1073,6 +1178,35 @@ a { color: inherit; }
   outline-offset: 2px;
   transform: translateY(-1px);
 }
+
+.heart-shape {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  transform: rotate(45deg);
+  background: #ff8fb1;
+  opacity: .85;
+  animation: float 2.7s ease-in-out infinite;
+}
+
+.heart-shape::before,
+.heart-shape::after {
+  content: "";
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.heart-shape::before { left: -13px; }
+.heart-shape::after { top: -13px; }
+.heart-shape.one { left: 78px; top: 34px; }
+.heart-shape.two { right: 88px; top: 88px; width: 18px; height: 18px; animation-delay: .6s; }
+.heart-shape.two::before,
+.heart-shape.two::after { width: 18px; height: 18px; }
+.heart-shape.two::before { left: -9px; }
+.heart-shape.two::after { top: -9px; }
 
 .emergency-settings {
   display: grid;
@@ -1137,6 +1271,7 @@ a { color: inherit; }
 @media (max-width: 720px) {
   .task-form { grid-template-columns: 1fr; }
   .presence-dock { top: auto; bottom: 18px; left: 18px; right: auto; }
+  .notice-feed { display: none; }
 }
 
 @media (max-width: 980px) {
