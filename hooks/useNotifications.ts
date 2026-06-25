@@ -4,19 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { Message, UserKey } from '@/types';
 import { users } from '@/lib/dentflow';
 
-const animals = ['cat', 'dog', 'rabbit', 'elephant', 'fox'] as const;
-const animalFace: Record<(typeof animals)[number], string> = {
-  cat: 'cat',
-  dog: 'dog',
-  rabbit: 'rabbit',
-  elephant: 'elephant',
-  fox: 'fox'
-};
-
 export type Notice = {
   id: string;
   animal: string;
   author: string;
+  urgent: boolean;
 };
 
 function beep() {
@@ -51,9 +43,9 @@ export function useNotifications(messages: Message[], currentUser: UserKey | nul
     lastIds.current = ids;
 
     if (!incoming) return;
-    const animal = animals[Math.floor(Math.random() * animals.length)];
     const author = users.find(item => item.key === incoming.author)?.name || incoming.author;
-    setNotice({ id: incoming.id, animal: animalFace[animal], author });
+    const urgent = /@\S+|urgent|сроч|экстр|acil/i.test(incoming.text);
+    setNotice({ id: incoming.id, animal: 'dog', author, urgent });
     if (soundOn) beep();
     const timer = window.setTimeout(() => setNotice(null), 5200);
     return () => window.clearTimeout(timer);
