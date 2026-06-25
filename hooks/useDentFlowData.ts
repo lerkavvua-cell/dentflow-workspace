@@ -58,15 +58,15 @@ function saveArchive(data: Pick<LocalData, 'messages' | 'patients' | 'tasks'>) {
   localStorage.setItem(archiveKey, JSON.stringify({ ...data, savedAt: now() }));
 }
 
-function withoutUndefined<T>(data: T): T {
-  if (Array.isArray(data)) return data.map(item => withoutUndefined(item)).filter(item => item !== undefined) as T;
+const cleanData = <T,>(data: T): T => {
+  if (Array.isArray(data)) return data.map(item => cleanData(item)).filter(item => item !== undefined) as T;
   if (!data || typeof data !== 'object') return data;
   return Object.fromEntries(
     Object.entries(data as Record<string, unknown>)
       .filter(([, value]) => value !== undefined)
-      .map(([key, value]) => [key, withoutUndefined(value)])
+      .map(([key, value]) => [key, cleanData(value)])
   ) as T;
-}
+};
 
 function seedData(): LocalData {
   const createdAt = now() - 1200000;
@@ -297,7 +297,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
             where('patientNameKey', '==', patientName)
           );
           const taskSnap = await getDocs(taskQuery);
-          await Promise.all(taskSnap.docs.map(item => updateDoc(doc(db, 'tasks', item.id), { done: true, completedAt })));
+          await Promise.all(taskSnap.docs.map(item => updateDoc(doc(db, 'tasks', item.id), cleanData({ done: true, completedAt }))));
         } catch (err) {
           onError(`tasks: ${(err as Error).message}`);
         }
@@ -316,7 +316,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
           await ensureFirebaseAuth();
           await setDoc(
             doc(db, 'presence', user),
-            { status, name: users.find(item => item.key === user)?.name || user, updatedAt: now() },
+            cleanData({ status, name: users.find(item => item.key === user)?.name || user, updatedAt: now() }),
             { merge: true }
           );
         } catch (err) {
@@ -356,7 +356,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
           const existing = await getDoc(refDoc);
           await setDoc(
             refDoc,
-            withoutUndefined({
+            cleanData({
               ...patch,
               doctor: existing.data()?.doctor || '',
               agent: existing.data()?.agent || '',
@@ -381,7 +381,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       if (cloudMode && db) {
         try {
           await ensureFirebaseAuth();
-          const saved = await addDoc(collection(db, 'systemNotices'), withoutUndefined(noticeData));
+          const saved = await addDoc(collection(db, 'systemNotices'), cleanData(noticeData));
           setNotices(prev => (prev.some(item => item.id === saved.id) ? prev : [{ id: saved.id, ...noticeData }, ...prev].slice(0, 30)));
           return;
         } catch (err) {
@@ -432,12 +432,12 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         file,
         createdAt: now()
       };
-      const cleanMessageData = withoutUndefined(messageData);
+      const cleanMessageData = cleanData(messageData);
 
       try {
         if (cloudMode && db) {
           await ensureFirebaseAuth();
-          const saved = await addDoc(collection(db, 'messages'), cleanMessageData);
+          const saved = await addDoc(collection(db, 'messages'), cleanData(cleanMessageData));
           setMessages(prev => (prev.some(item => item.id === saved.id) ? prev : [...prev, { id: saved.id, ...cleanMessageData }]));
           await upsertPatient(workspace, draft);
           return;
@@ -462,7 +462,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       if (cloudMode && db) {
         try {
           await ensureFirebaseAuth();
-          await updateDoc(doc(db, 'patients', id), withoutUndefined(next));
+          await updateDoc(doc(db, 'patients', id), cleanData(next));
         } catch (err) {
           onError(`patient: ${(err as Error).message}`);
         }
@@ -498,7 +498,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       if (cloudMode && db) {
         try {
           await ensureFirebaseAuth();
-          const saved = await addDoc(collection(db, 'tasks'), withoutUndefined(taskData));
+          const saved = await addDoc(collection(db, 'tasks'), cleanData(taskData));
           setTasks(prev => (prev.some(item => item.id === saved.id) ? prev : [...prev, { id: saved.id, ...taskData }]));
           return;
         } catch (err) {
@@ -519,7 +519,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       if (cloudMode && db) {
         try {
           await ensureFirebaseAuth();
-          await updateDoc(doc(db, 'tasks', id), { done: true, completedAt });
+          await updateDoc(doc(db, 'tasks', id), cleanData({ done: true, completedAt }));
         } catch (err) {
           onError(`tasks: ${(err as Error).message}`);
         }
@@ -535,7 +535,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       if (cloudMode && db) {
         try {
           await ensureFirebaseAuth();
-          await setDoc(doc(db, 'system', 'emergency'), { text, updatedAt: now() }, { merge: true });
+          await setDoc(doc(db, 'system', 'emergency'), cleanData({ text, updatedAt: now() }), { merge: true });
         } catch (err) {
           onError(`system/emergency: ${(err as Error).message}`);
         }
