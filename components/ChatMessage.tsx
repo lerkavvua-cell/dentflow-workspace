@@ -33,6 +33,7 @@ export default function ChatMessage({
   const author = users.find(item => item.key === message.author)?.name || message.author;
   const hasMention = /@[^\s@]+/.test(message.text);
   const canDelete = !message.deleted && (message.author === currentUser || currentUser === 'valeriia');
+  const patientPrefix = message.patient ? `${message.patient} · ` : '';
 
   return (
     <article className={`message-row ${message.author === currentUser ? 'mine' : ''} ${hasMention ? 'mentioned' : ''} ${message.deleted ? 'deleted' : ''}`}>
@@ -65,12 +66,12 @@ export default function ChatMessage({
                   if (message.patient) onSelectPatient?.(message.patient);
                 }}
               >
-                {t.patientCard}
+                {patientPrefix}{t.patientCard}
               </a>
             )}
             {message.canvaLink && (
               <a href={message.canvaLink} target="_blank" rel="noreferrer">
-                Canva
+                {patientPrefix}Canva
               </a>
             )}
             {message.file &&
