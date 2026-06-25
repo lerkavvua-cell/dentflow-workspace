@@ -306,39 +306,62 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       if (!name) return;
 
       const id = normalizePatientId(workspace, name);
+      const createdAt = now();
       const patch = {
         workspace,
         name,
         status: 'review' as PatientStatus,
         cardLink: draft.cardLink?.trim() || '',
         canvaLink: draft.canvaLink?.trim() || '',
-        updatedAt: now()
+        updatedAt: createdAt
       };
-
-      if (cloudMode && db) {
-        const refDoc = doc(db, 'patients', id);
-        const existing = await getDoc(refDoc);
-        await setDoc(
-          refDoc,
-          {
-            ...patch,
-            doctor: existing.data()?.doctor || '',
-            agent: existing.data()?.agent || '',
-            notes: existing.data()?.notes || '',
-            createdAt: existing.exists() ? existing.data()?.createdAt || now() : now()
-          },
-          { merge: true }
-        );
-        return;
-      }
 
       setPatients(prev => {
         const current = prev.find(item => item.id === id);
         if (current) return prev.map(item => (item.id === id ? { ...item, ...patch } : item));
-        return [{ id, ...patch, doctor: '', agent: '', notes: '', createdAt: now() }, ...prev];
+        return [{ id, ...patch, doctor: '', agent: '', notes: '', createdAt }, ...prev];
       });
+
+      if (cloudMode && db) {
+        try {
+          const refDoc = doc(db, 'patients', id);
+          const existing = await getDoc(refDoc);
+          await setDoc(
+            refDoc,
+            withoutUndefined({
+              ...patch,
+              doctor: existing.data()?.doctor || '',
+              agent: existing.data()?.agent || '',
+              notes: existing.data()?.notes || '',
+              createdAt: existing.exists() ? existing.data()?.createdAt || createdAt : createdAt
+            }),
+            { merge: true }
+          );
+        } catch (err) {
+          onError(`patient create: ${(err as Error).message}`);
+        }
+      }
     },
-    [cloudMode]
+    [cloudMode, onError]
+  );
+
+  const addSystemNotice = useCallback(
+    async (type: SystemNotice['type'], text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const noticeData = { type, text: trimmed, createdAt: now() };
+      if (cloudMode && db) {
+        try {
+          const saved = await addDoc(collection(db, 'systemNotices'), withoutUndefined(noticeData));
+          setNotices(prev => (prev.some(item => item.id === saved.id) ? prev : [{ id: saved.id, ...noticeData }, ...prev].slice(0, 30)));
+          return;
+        } catch (err) {
+          onError(`systemNotices: ${(err as Error).message}`);
+        }
+      }
+      setNotices(prev => [{ id: uid(), ...noticeData }, ...prev].slice(0, 30));
+    },
+    [cloudMode, onError]
   );
 
   const sendMessage = useCallback(
@@ -406,7 +429,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       if (cloudMode && db) {
         try {
-          await updateDoc(doc(db, 'patients', id), next);
+          await updateDoc(doc(db, 'patients', id), withoutUndefined(next));
         } catch (err) {
           onError(`patient: ${(err as Error).message}`);
         }
@@ -421,25 +444,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         }
       }
     },
-    [cloudMode, completePatientTasks, onError, patients]
-  );
-
-  const addSystemNotice = useCallback(
-    async (type: SystemNotice['type'], text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed) return;
-      const noticeData = { type, text: trimmed, createdAt: now() };
-      if (cloudMode && db) {
-        try {
-          await addDoc(collection(db, 'systemNotices'), noticeData);
-          return;
-        } catch (err) {
-          onError(`systemNotices: ${(err as Error).message}`);
-        }
-      }
-      setNotices(prev => [{ id: uid(), ...noticeData }, ...prev].slice(0, 30));
-    },
-    [cloudMode, onError]
+    [addSystemNotice, cloudMode, completePatientTasks, onError, patients]
   );
 
   const addTask = useCallback(
