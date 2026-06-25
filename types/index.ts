@@ -60,6 +60,13 @@ export type AccessRequest = {
   createdAt: number;
 };
 
+export type SystemNotice = {
+  id: string;
+  type: 'warning' | 'info';
+  text: string;
+  createdAt: number;
+};
+
 export type Profile = {
   key: UserKey;
   name: string;
