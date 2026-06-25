@@ -23,6 +23,7 @@ export type Message = {
   canvaLink?: string;
   file?: FileMeta;
   createdAt: number;
+  syncState?: 'pending' | 'saved' | 'local';
   deleted?: boolean;
   deletedAt?: number;
   deletedBy?: UserKey;
