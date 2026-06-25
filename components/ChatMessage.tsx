@@ -1,22 +1,7 @@
 'use client';
 
-import { copy, formatTime, users, whatsappTargets } from '@/lib/dentflow';
+import { copy, formatTime, users } from '@/lib/dentflow';
 import type { Lang, Message, UserKey } from '@/types';
-
-function whatsappUrl(message: Message) {
-  const target = whatsappTargets[message.workspace];
-  if (!target) return '';
-  const body = [
-    message.patient ? `Patient: ${message.patient}` : '',
-    message.text,
-    message.cardLink ? `Patient Card: ${message.cardLink}` : '',
-    message.canvaLink ? `Canva: ${message.canvaLink}` : '',
-    message.file?.fileUrl ? `File: ${message.file.fileUrl}` : message.file?.fileName ? `File: ${message.file.fileName}` : ''
-  ]
-    .filter(Boolean)
-    .join('\n');
-  return `https://wa.me/${target.phone}?text=${encodeURIComponent(body)}`;
-}
 
 function renderText(text: string) {
   const parts = text.split(/(@[^\s@]+)/g);
@@ -34,7 +19,6 @@ function renderText(text: string) {
 export default function ChatMessage({ message, currentUser, lang }: { message: Message; currentUser: UserKey; lang: Lang }) {
   const t = copy[lang];
   const author = users.find(item => item.key === message.author)?.name || message.author;
-  const waUrl = whatsappUrl(message);
   const hasMention = /@[^\s@]+/.test(message.text);
 
   return (
@@ -46,7 +30,7 @@ export default function ChatMessage({ message, currentUser, lang }: { message: M
           {message.patient && <span>{message.patient}</span>}
         </div>
         <p>{renderText(message.text)}</p>
-        {(message.cardLink || message.canvaLink || message.file || waUrl) && (
+        {(message.cardLink || message.canvaLink || message.file) && (
           <div className="message-links">
             {message.cardLink && (
               <a href={message.cardLink} target="_blank" rel="noreferrer">
@@ -66,11 +50,6 @@ export default function ChatMessage({ message, currentUser, lang }: { message: M
               ) : (
                 <span>{t.file}: {message.file.fileName}</span>
               ))}
-            {waUrl && (
-              <a className="whatsapp-link" href={waUrl} target="_blank" rel="noreferrer">
-                {t.sendToWhatsapp}
-              </a>
-            )}
           </div>
         )}
       </div>
