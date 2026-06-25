@@ -48,6 +48,8 @@ export const accessCodes: Record<UserKey, string> = {
   manager: '404'
 };
 
+export const ownerEmail = 'lerkavv.ua@gmail.com';
+
 export const roleLabels: Record<Lang, Record<UserKey, string>> = {
   ru: { valeriia: 'Руководитель', behnia: 'Планировщик', ilayda: 'Планировщик', manager: 'Менеджер' },
   en: { valeriia: 'Owner', behnia: 'Planner', ilayda: 'Planner', manager: 'Manager' },
