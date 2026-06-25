@@ -14,6 +14,7 @@ export default function ChatColumn({
   patients,
   tasks,
   presence,
+  online,
   onSend,
   onDeleteMessage,
   onAddTask,
@@ -27,6 +28,7 @@ export default function ChatColumn({
   patients: Patient[];
   tasks: TaskItem[];
   presence: Presence;
+  online: boolean;
   onSend: (workspace: WorkspaceKey, draft: ComposerDraft) => Promise<void>;
   onDeleteMessage: (id: string) => Promise<void>;
   onAddTask: (workspace: WorkspaceKey, patientName: string, text: string, materialLink?: string) => Promise<void>;
@@ -55,8 +57,8 @@ export default function ChatColumn({
         <div>
           <h3>{workspaceNames[workspace]}</h3>
           <span>
-            <i className={`presence-dot ${presence}`} />
-            {t[presence]}
+            <i className={`presence-dot ${online ? 'online' : 'offline'} ${presence}`} />
+            {online ? t.online : t.offline} · {t[presence]}
           </span>
         </div>
         <small>{messages.length} {t.messages}</small>
