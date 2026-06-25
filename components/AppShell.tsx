@@ -39,8 +39,8 @@ export default function AppShell() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    document.documentElement.lang = lang === 'he' ? 'he' : lang;
-    document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
   }, [lang, theme]);
 
   const filtered = useMemo(() => {
