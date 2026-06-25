@@ -1,7 +1,7 @@
 'use client';
 
 import { workspaces } from '@/lib/dentflow';
-import type { ComposerDraft, Lang, Message, Patient, Presence, TaskItem, UserKey, WorkspaceKey } from '@/types';
+import type { ComposerDraft, Lang, Message, OnlineMap, Patient, Presence, TaskItem, UserKey, WorkspaceKey } from '@/types';
 import ChatColumn from './ChatColumn';
 
 export default function ChatWorkspace({
@@ -11,6 +11,7 @@ export default function ChatWorkspace({
   patients,
   tasks,
   presence,
+  online,
   onSend,
   onDeleteMessage,
   onAddTask,
@@ -23,6 +24,7 @@ export default function ChatWorkspace({
   patients: Patient[];
   tasks: TaskItem[];
   presence: Record<UserKey, Presence>;
+  online: OnlineMap;
   onSend: (workspace: WorkspaceKey, draft: ComposerDraft) => Promise<void>;
   onDeleteMessage: (id: string) => Promise<void>;
   onAddTask: (workspace: WorkspaceKey, patientName: string, text: string, materialLink?: string) => Promise<void>;
@@ -41,6 +43,7 @@ export default function ChatWorkspace({
           patients={patients.filter(patient => patient.workspace === workspace)}
           tasks={tasks.filter(task => task.workspace === workspace && !task.done)}
           presence={presence[workspace]}
+          online={online[workspace]}
           onSend={onSend}
           onDeleteMessage={onDeleteMessage}
           onAddTask={onAddTask}
