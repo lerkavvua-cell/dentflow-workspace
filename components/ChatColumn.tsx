@@ -27,14 +27,14 @@ export default function ChatColumn({
   tasks: TaskItem[];
   presence: Presence;
   onSend: (workspace: WorkspaceKey, draft: ComposerDraft) => Promise<void>;
-  onAddTask: (workspace: WorkspaceKey, patientName: string, text: string) => Promise<void>;
+  onAddTask: (workspace: WorkspaceKey, patientName: string, text: string, materialLink?: string) => Promise<void>;
   onCompleteTask: (id: string) => Promise<void>;
   onSelectPatient: (id: string) => void;
 }) {
   const t = copy[lang];
   const bodyRef = useRef<HTMLDivElement>(null);
   const [taskPatient, setTaskPatient] = useState('');
-  const [taskText, setTaskText] = useState('');
+  const [taskLink, setTaskLink] = useState('');
   const canAddTasks = currentUser === 'valeriia';
 
   useEffect(() => {
@@ -42,9 +42,9 @@ export default function ChatColumn({
   }, [messages.length]);
 
   async function submitTask() {
-    await onAddTask(workspace, taskPatient, taskText);
+    await onAddTask(workspace, taskPatient, taskLink, taskLink);
     setTaskPatient('');
-    setTaskText('');
+    setTaskLink('');
   }
 
   return (
@@ -68,7 +68,7 @@ export default function ChatColumn({
         {canAddTasks && (
           <div className="task-form">
             <input value={taskPatient} onChange={event => setTaskPatient(event.target.value)} placeholder={t.patientTaskName} />
-            <input value={taskText} onChange={event => setTaskText(event.target.value)} placeholder={t.taskPlaceholder} />
+            <input value={taskLink} onChange={event => setTaskLink(event.target.value)} placeholder="Material link" />
             <button type="button" onClick={submitTask}>{t.addTask}</button>
           </div>
         )}
@@ -77,8 +77,8 @@ export default function ChatColumn({
             <div className="task-item" key={task.id}>
               <div>
                 <strong>{task.patientName}</strong>
-                <span>{task.text}</span>
               </div>
+              {task.materialLink && <a href={task.materialLink} target="_blank" rel="noreferrer">Link</a>}
               <button type="button" onClick={() => onCompleteTask(task.id)}>{t.done}</button>
             </div>
           ))}
