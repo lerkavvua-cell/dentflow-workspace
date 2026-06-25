@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { copy, workspaceNames } from '@/lib/dentflow';
+import { copy, normalizePatientId, workspaceNames } from '@/lib/dentflow';
 import type { ComposerDraft, Lang, Message, Patient, Presence, TaskItem, UserKey, WorkspaceKey } from '@/types';
 import ChatComposer from './ChatComposer';
 import ChatMessage from './ChatMessage';
@@ -100,7 +100,13 @@ export default function ChatColumn({
         ))}
       </div>
 
-      <ChatComposer lang={lang} onSend={draft => onSend(workspace, draft)} />
+      <ChatComposer
+        lang={lang}
+        onSend={async draft => {
+          await onSend(workspace, draft);
+          if (draft.patient?.trim()) onSelectPatient(normalizePatientId(workspace, draft.patient));
+        }}
+      />
     </section>
   );
 }
