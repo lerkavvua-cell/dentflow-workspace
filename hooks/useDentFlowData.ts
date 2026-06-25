@@ -20,6 +20,7 @@ import { normalizePatientId, users } from '@/lib/dentflow';
 import type { ComposerDraft, FileMeta, Message, Patient, PatientStatus, Presence, TaskItem, UserKey, WorkspaceKey } from '@/types';
 
 const localKey = 'dentflow-v3-local-fallback';
+const archiveKey = 'dentflow-v3-local-archive';
 const now = () => Date.now();
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
@@ -49,6 +50,11 @@ function loadLocal(): LocalData | null {
 
 function saveLocal(data: LocalData) {
   if (typeof window !== 'undefined') localStorage.setItem(localKey, JSON.stringify(data));
+}
+
+function saveArchive(data: Pick<LocalData, 'messages' | 'patients' | 'tasks'>) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(archiveKey, JSON.stringify({ ...data, savedAt: now() }));
 }
 
 function seedData(): LocalData {
@@ -209,6 +215,11 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
     saveLocal({ messages, patients, tasks, presence, emergency });
   }, [cloudMode, emergency, messages, patients, presence, tasks, user]);
 
+  useEffect(() => {
+    if (!user) return;
+    saveArchive({ messages, patients, tasks });
+  }, [messages, patients, tasks, user]);
+
   const completePatientTasks = useCallback(
     async (patient: Pick<Patient, 'name' | 'workspace'>) => {
       const patientName = patient.name.trim().toLowerCase();
@@ -303,7 +314,13 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
   const sendMessage = useCallback(
     async (workspace: WorkspaceKey, draft: ComposerDraft) => {
-      if (!user || !draft.text.trim()) return;
+      const hasPayload =
+        Boolean(draft.text.trim()) ||
+        Boolean(draft.patient?.trim()) ||
+        Boolean(draft.cardLink?.trim()) ||
+        Boolean(draft.canvaLink?.trim()) ||
+        Boolean(draft.file);
+      if (!user || !hasPayload) return;
 
       let file: FileMeta | undefined;
       if (draft.file) {
@@ -314,16 +331,20 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         };
 
         if (cloudMode && storage) {
-          const storageRef = ref(storage, `attachments/${workspace}/${Date.now()}-${draft.file.name}`);
-          const uploaded = await uploadBytes(storageRef, draft.file);
-          file.fileUrl = await getDownloadURL(uploaded.ref);
+          try {
+            const storageRef = ref(storage, `attachments/${workspace}/${Date.now()}-${draft.file.name}`);
+            const uploaded = await uploadBytes(storageRef, draft.file);
+            file.fileUrl = await getDownloadURL(uploaded.ref);
+          } catch (err) {
+            onError(`file: ${(err as Error).message}`);
+          }
         }
       }
 
       const messageData: Omit<Message, 'id'> = {
         workspace,
         author: user,
-        text: draft.text.trim(),
+        text: draft.text.trim() || (draft.canvaLink?.trim() || draft.cardLink?.trim() ? 'Material link' : draft.file ? 'File attached' : 'Patient update'),
         patient: draft.patient?.trim() || '',
         cardLink: draft.cardLink?.trim() || '',
         canvaLink: draft.canvaLink?.trim() || '',
@@ -370,15 +391,16 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
   );
 
   const addTask = useCallback(
-    async (workspace: WorkspaceKey, patientName: string, text: string) => {
-      if (!user || !patientName.trim() || !text.trim()) return;
+    async (workspace: WorkspaceKey, patientName: string, text: string, materialLink?: string) => {
+      if (!user || !patientName.trim() || (!text.trim() && !materialLink?.trim())) return;
       const patientNameKey = patientName.trim().toLowerCase();
       const taskData = {
         workspace,
         assignedTo: workspace,
         patientName: patientName.trim(),
         patientNameKey,
-        text: text.trim(),
+        text: text.trim() || materialLink?.trim() || 'Material',
+        materialLink: materialLink?.trim() || '',
         done: false,
         createdAt: now()
       };
