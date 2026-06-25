@@ -1,20 +1,24 @@
 'use client';
 
 import { copy, roleLabels, users, viewKeys } from '@/lib/dentflow';
-import type { Lang, Presence, UserKey, ViewKey } from '@/types';
+import type { Lang, LastSeenMap, OnlineMap, Presence, UserKey, ViewKey } from '@/types';
 
 export default function Sidebar({
   lang,
   activeView,
   setView,
   currentUser,
-  presence
+  presence,
+  online,
+  lastSeen
 }: {
   lang: Lang;
   activeView: ViewKey;
   setView: (view: ViewKey) => void;
   currentUser: UserKey;
   presence: Record<UserKey, Presence>;
+  online: OnlineMap;
+  lastSeen: LastSeenMap;
 }) {
   const t = copy[lang];
   const profile = users.find(item => item.key === currentUser)!;
@@ -51,10 +55,13 @@ export default function Sidebar({
         <h2>{t.team}</h2>
         {users.map(member => (
           <div className="team-row" key={member.key}>
-            <span className={`presence-dot ${presence[member.key]}`} />
+            <span className={`presence-dot ${online[member.key] ? 'online' : 'offline'} ${presence[member.key]}`} />
             <div>
               <strong>{member.name}</strong>
-              <small>{t[presence[member.key]]}</small>
+              <small>
+                {online[member.key] ? t.online : t.offline} · {t[presence[member.key]]}
+                {!online[member.key] && lastSeen[member.key] ? ` · ${t.lastSeen} ${new Date(lastSeen[member.key]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+              </small>
             </div>
           </div>
         ))}
