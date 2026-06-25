@@ -41,6 +41,13 @@ export const viewKeys: ViewKey[] = ['today', 'patients', 'chats', 'plans', 'repo
 export const statusKeys: PatientStatus[] = ['review', 'correction', 'approved', 'sent', 'archived'];
 export const presenceKeys: Presence[] = ['here', 'break', 'lunch', 'busy', 'finished'];
 
+export const accessCodes: Record<UserKey, string> = {
+  valeriia: '101',
+  behnia: '202',
+  ilayda: '303',
+  manager: '404'
+};
+
 export const roleLabels: Record<Lang, Record<UserKey, string>> = {
   ru: { valeriia: 'Руководитель', behnia: 'Планировщик', ilayda: 'Планировщик', manager: 'Менеджер' },
   en: { valeriia: 'Owner', behnia: 'Planner', ilayda: 'Planner', manager: 'Manager' },
