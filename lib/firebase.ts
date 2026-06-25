@@ -1,4 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -23,3 +24,17 @@ export const db = app
     })()
   : null;
 export const storage = app && config.storageBucket ? getStorage(app) : null;
+export const auth = app ? getAuth(app) : null;
+
+let authPromise: Promise<void> | null = null;
+
+export function ensureFirebaseAuth() {
+  if (!auth) return Promise.resolve();
+  if (auth.currentUser) return Promise.resolve();
+  if (!authPromise) {
+    authPromise = signInAnonymously(auth)
+      .then(() => undefined)
+      .catch(() => undefined);
+  }
+  return authPromise;
+}
