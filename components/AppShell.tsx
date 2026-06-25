@@ -50,6 +50,7 @@ export default function AppShell() {
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return { patients: data.patients, messages: data.messages };
+    if (needle.startsWith('@')) return { patients: data.patients, messages: data.messages };
 
     return {
       patients: data.patients.filter(patient =>
@@ -67,7 +68,7 @@ export default function AppShell() {
     };
   }, [data.messages, data.patients, query]);
 
-  const selectedPatient = filtered.patients.find(patient => patient.id === activePatientId) || filtered.patients[0];
+  const selectedPatient = data.patients.find(patient => patient.id === activePatientId) || filtered.patients[0] || data.patients[0];
 
   if (!user) {
     return <WelcomeScreen lang={lang} theme={theme} setLang={setLang} setTheme={setTheme} setUser={setUser} />;
