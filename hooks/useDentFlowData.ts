@@ -125,10 +125,21 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
   useEffect(() => {
     if (!user) return;
 
+    const cached = loadLocal();
+    if (cached) {
+      setMessages(cached.messages || []);
+      setPatients(cached.patients || []);
+      setTasks(cached.tasks || []);
+      setPresence(cached.presence || defaultPresence);
+      setEmergency(cached.emergency || '');
+      setNotices(cached.notices || []);
+    }
+
     if (cloudMode && db) {
       const unsubMessages = onSnapshot(
         query(collection(db, 'messages'), orderBy('createdAt', 'asc')),
         snap => {
+          if (snap.empty) return;
           setMessages(
             snap.docs.map(item => {
               const data = item.data() as Message;
@@ -142,6 +153,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       const unsubPatients = onSnapshot(
         query(collection(db, 'patients'), orderBy('updatedAt', 'desc')),
         snap => {
+          if (snap.empty) return;
           setPatients(
             snap.docs.map(item => {
               const data = item.data() as Patient;
@@ -173,6 +185,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       const unsubTasks = onSnapshot(
         query(collection(db, 'tasks'), orderBy('createdAt', 'asc')),
         snap => {
+          if (snap.empty) return;
           setTasks(
             snap.docs.map(item => {
               const data = item.data() as TaskItem;
@@ -197,6 +210,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       const unsubNotices = onSnapshot(
         query(collection(db, 'systemNotices'), orderBy('createdAt', 'desc')),
         snap => {
+          if (snap.empty) return;
           setNotices(
             snap.docs.map(item => {
               const data = item.data() as SystemNotice;
@@ -217,7 +231,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       };
     }
 
-    const data = loadLocal() || seedData();
+    const data = cached || seedData();
     setMessages(data.messages);
     setPatients(data.patients);
     setTasks(data.tasks || []);
@@ -240,9 +254,9 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
   }, [cloudMode, onError, user]);
 
   useEffect(() => {
-    if (!user || cloudMode) return;
+    if (!user) return;
     saveLocal({ messages, patients, tasks, presence, emergency, notices });
-  }, [cloudMode, emergency, messages, notices, patients, presence, tasks, user]);
+  }, [emergency, messages, notices, patients, presence, tasks, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -417,6 +431,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
         await upsertPatient(workspace, draft);
       } catch (err) {
         onError(`send: ${(err as Error).message}`);
+        setMessages(prev => [...prev, { id: uid(), ...cleanMessageData }]);
+        await upsertPatient(workspace, draft);
       }
     },
     [cloudMode, onError, upsertPatient, user]
