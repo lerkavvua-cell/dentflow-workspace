@@ -101,6 +101,7 @@ export default function AppShell() {
                 tasks={data.tasks}
                 presence={data.presence}
                 onSend={data.sendMessage}
+                onDeleteMessage={data.deleteMessage}
                 onAddTask={data.addTask}
                 onCompleteTask={data.completeTask}
                 onSelectPatient={setActivePatientId}
