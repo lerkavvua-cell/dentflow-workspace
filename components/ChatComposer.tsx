@@ -19,10 +19,13 @@ export default function ChatComposer({ lang, onSend }: { lang: Lang; onSend: (dr
       Boolean(draft.file);
     if (!hasPayload || sending) return;
     setSending(true);
-    await onSend(draft);
-    setDraft({ text: '', patient: '', cardLink: '', canvaLink: '', file: null });
-    if (inputRef.current) inputRef.current.value = '';
-    setSending(false);
+    try {
+      await onSend(draft);
+      setDraft({ text: '', patient: '', cardLink: '', canvaLink: '', file: null });
+      if (inputRef.current) inputRef.current.value = '';
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
