@@ -2,7 +2,7 @@ export type UserKey = 'valeriia' | 'behnia' | 'ilayda' | 'manager';
 export type WorkspaceKey = 'valeriia' | 'behnia' | 'ilayda';
 export type Presence = 'here' | 'break' | 'lunch' | 'busy' | 'finished';
 export type PatientStatus = 'review' | 'correction' | 'approved' | 'sent' | 'archived';
-export type Lang = 'ru' | 'en' | 'tr' | 'he';
+export type Lang = 'ru' | 'en' | 'tr' | 'fa';
 export type ViewKey = 'today' | 'patients' | 'chats' | 'plans' | 'reports' | 'settings';
 export type ThemeKey = 'paper' | 'ocean' | 'forest' | 'sakura' | 'night';
 
