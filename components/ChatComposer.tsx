@@ -42,9 +42,24 @@ export default function ChatComposer({ lang, onSend }: { lang: Lang; onSend: (dr
         <input value={draft.patient || ''} onChange={event => setDraft(prev => ({ ...prev, patient: event.target.value }))} placeholder={t.patientName} />
         <input value={draft.cardLink || ''} onChange={event => setDraft(prev => ({ ...prev, cardLink: event.target.value }))} placeholder={t.patientCard} />
         <input value={draft.canvaLink || ''} onChange={event => setDraft(prev => ({ ...prev, canvaLink: event.target.value }))} placeholder={t.canvaLink} />
-        <button type="button" className="file-button" onClick={() => inputRef.current?.click()}>
-          {draft.file ? draft.file.name : t.attachFile}
-        </button>
+        <div className="file-control">
+          <button type="button" className="file-button" onClick={() => inputRef.current?.click()}>
+            {draft.file ? draft.file.name : t.attachFile}
+          </button>
+          {draft.file && (
+            <button
+              type="button"
+              className="remove-file"
+              aria-label="Remove file"
+              onClick={() => {
+                setDraft(prev => ({ ...prev, file: null }));
+                if (inputRef.current) inputRef.current.value = '';
+              }}
+            >
+              x
+            </button>
+          )}
+        </div>
         <input
           ref={inputRef}
           className="hidden-file"
