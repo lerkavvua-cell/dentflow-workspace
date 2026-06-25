@@ -58,8 +58,14 @@ function saveArchive(data: Pick<LocalData, 'messages' | 'patients' | 'tasks'>) {
   localStorage.setItem(archiveKey, JSON.stringify({ ...data, savedAt: now() }));
 }
 
-function withoutUndefined<T extends Record<string, unknown>>(data: T) {
-  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as T;
+function withoutUndefined<T>(data: T): T {
+  if (Array.isArray(data)) return data.map(item => withoutUndefined(item)).filter(item => item !== undefined) as T;
+  if (!data || typeof data !== 'object') return data;
+  return Object.fromEntries(
+    Object.entries(data as Record<string, unknown>)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => [key, withoutUndefined(value)])
+  ) as T;
 }
 
 function seedData(): LocalData {
@@ -378,7 +384,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       try {
         if (cloudMode && db) {
-          await addDoc(collection(db, 'messages'), cleanMessageData);
+          const saved = await addDoc(collection(db, 'messages'), cleanMessageData);
+          setMessages(prev => (prev.some(item => item.id === saved.id) ? prev : [...prev, { id: saved.id, ...cleanMessageData }]));
           await upsertPatient(workspace, draft);
           return;
         }
@@ -452,7 +459,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
       if (cloudMode && db) {
         try {
-          await addDoc(collection(db, 'tasks'), taskData);
+          const saved = await addDoc(collection(db, 'tasks'), withoutUndefined(taskData));
+          setTasks(prev => (prev.some(item => item.id === saved.id) ? prev : [...prev, { id: saved.id, ...taskData }]));
           return;
         } catch (err) {
           onError(`tasks: ${(err as Error).message}`);
