@@ -150,7 +150,7 @@ function Login({lang,setLang,setUser,theme,setTheme}:{lang:Lang;setLang:(l:Lang)
       <h1>{t.welcome} ☀️</h1><p>{t.subtitle}</p>
       <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:14}}><select className="pill" value={lang} onChange={e=>setLang(e.target.value as Lang)}><option value="ru">Русский</option><option value="en">English</option><option value="tr">Türkçe</option><option value="fa">فارسی</option></select><select className="pill" value={theme} onChange={e=>setTheme(e.target.value)}><option value="paper">Paper</option><option value="forest">Forest</option><option value="ocean">Ocean</option><option value="sakura">Sakura</option><option value="night">Night</option></select></div>
       <div className="login-actions">
-        <button onClick={()=>setUser('valeriia')}>👑 Valeriia</button><button onClick={()=>setUser('manager')}>🛡 Manager</button><button onClick={()=>setUser('behnia')}>Behnia</button><button onClick={()=>setUser('ilayda')}>İlayda</button>
+        <button onClick={()=>setUser('valeriia')}> Valeriia</button><button onClick={()=>setUser('manager')}>🛡 Manager</button><button onClick={()=>setUser('behnia')}>Behnia</button><button onClick={()=>setUser('ilayda')}>İlayda</button>
       </div>
     </div>
   </div>
