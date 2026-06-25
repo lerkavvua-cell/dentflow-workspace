@@ -18,20 +18,34 @@ function whatsappUrl(message: Message) {
   return `https://wa.me/${target.phone}?text=${encodeURIComponent(body)}`;
 }
 
+function renderText(text: string) {
+  const parts = text.split(/(@[^\s@]+)/g);
+  return parts.map((part, index) =>
+    part.startsWith('@') ? (
+      <mark key={`${part}-${index}`} className="mention">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
 export default function ChatMessage({ message, currentUser, lang }: { message: Message; currentUser: UserKey; lang: Lang }) {
   const t = copy[lang];
   const author = users.find(item => item.key === message.author)?.name || message.author;
   const waUrl = whatsappUrl(message);
+  const hasMention = /@[^\s@]+/.test(message.text);
 
   return (
-    <article className={`message-row ${message.author === currentUser ? 'mine' : ''}`}>
+    <article className={`message-row ${message.author === currentUser ? 'mine' : ''} ${hasMention ? 'mentioned' : ''}`}>
       <div className="message-bubble">
         <div className="message-meta">
           <span>{author}</span>
           <span>{formatTime(message.createdAt)}</span>
           {message.patient && <span>{message.patient}</span>}
         </div>
-        <p>{message.text}</p>
+        <p>{renderText(message.text)}</p>
         {(message.cardLink || message.canvaLink || message.file || waUrl) && (
           <div className="message-links">
             {message.cardLink && (
