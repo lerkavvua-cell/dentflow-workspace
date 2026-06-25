@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const config = {
@@ -13,5 +13,13 @@ const config = {
 
 export const firebaseReady = Boolean(config.apiKey && config.projectId && config.appId);
 export const app = firebaseReady ? (getApps().length ? getApps()[0] : initializeApp(config)) : null;
-export const db = app ? getFirestore(app) : null;
+export const db = app
+  ? (() => {
+      try {
+        return initializeFirestore(app, { ignoreUndefinedProperties: true });
+      } catch {
+        return getFirestore(app);
+      }
+    })()
+  : null;
 export const storage = app && config.storageBucket ? getStorage(app) : null;
