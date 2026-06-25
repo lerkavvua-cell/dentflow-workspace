@@ -11,7 +11,13 @@ export default function ChatComposer({ lang, onSend }: { lang: Lang; onSend: (dr
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function submit() {
-    if (!draft.text.trim() || sending) return;
+    const hasPayload =
+      Boolean(draft.text.trim()) ||
+      Boolean(draft.patient?.trim()) ||
+      Boolean(draft.cardLink?.trim()) ||
+      Boolean(draft.canvaLink?.trim()) ||
+      Boolean(draft.file);
+    if (!hasPayload || sending) return;
     setSending(true);
     await onSend(draft);
     setDraft({ text: '', patient: '', cardLink: '', canvaLink: '', file: null });
