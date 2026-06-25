@@ -16,7 +16,7 @@ import {
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, ensureFirebaseAuth, firebaseReady, storage } from '@/lib/firebase';
 import { normalizePatientId, users } from '@/lib/dentflow';
-import type { ComposerDraft, FileMeta, Message, Patient, PatientStatus, Presence, SystemNotice, TaskItem, UserKey, WorkspaceKey } from '@/types';
+import type { ComposerDraft, FileMeta, LastSeenMap, Message, OnlineMap, Patient, PatientStatus, Presence, SystemNotice, TaskItem, UserKey, WorkspaceKey } from '@/types';
 
 const localKey = 'dentflow-v3-local-fallback';
 const archiveKey = 'dentflow-v3-local-archive';
@@ -28,6 +28,8 @@ type LocalData = {
   patients: Patient[];
   tasks: TaskItem[];
   presence: Record<UserKey, Presence>;
+  online: OnlineMap;
+  lastSeen: LastSeenMap;
   emergency: string;
   notices: SystemNotice[];
 };
@@ -37,6 +39,20 @@ const defaultPresence: Record<UserKey, Presence> = {
   behnia: 'here',
   ilayda: 'here',
   manager: 'here'
+};
+
+const defaultOnline: OnlineMap = {
+  valeriia: false,
+  behnia: false,
+  ilayda: false,
+  manager: false
+};
+
+const defaultLastSeen: LastSeenMap = {
+  valeriia: 0,
+  behnia: 0,
+  ilayda: 0,
+  manager: 0
 };
 
 function loadLocal(): LocalData | null {
@@ -99,6 +115,8 @@ function seedData(): LocalData {
       }
     ],
     presence: defaultPresence,
+    online: defaultOnline,
+    lastSeen: defaultLastSeen,
     emergency: '',
     notices: []
   };
@@ -134,6 +152,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
   const [patients, setPatients] = useState<Patient[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [presence, setPresence] = useState<Record<UserKey, Presence>>(defaultPresence);
+  const [online, setOnline] = useState<OnlineMap>(defaultOnline);
+  const [lastSeen, setLastSeen] = useState<LastSeenMap>(defaultLastSeen);
   const [emergency, setEmergency] = useState('');
   const [notices, setNotices] = useState<SystemNotice[]>([]);
 
@@ -146,6 +166,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       setPatients(cached.patients || []);
       setTasks(cached.tasks || []);
       setPresence(cached.presence || defaultPresence);
+      setOnline(cached.online || defaultOnline);
+      setLastSeen(cached.lastSeen || defaultLastSeen);
       setEmergency(cached.emergency || '');
       setNotices(cached.notices || []);
     }
@@ -191,11 +213,21 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
           collection(db, 'presence'),
           snap => {
             const next = { ...defaultPresence };
+            const nextOnline = { ...defaultOnline };
+            const nextLastSeen = { ...defaultLastSeen };
+            const freshAfter = now() - 45000;
             snap.docs.forEach(item => {
               const key = item.id as UserKey;
-              if (users.some(profile => profile.key === key)) next[key] = item.data().status as Presence;
+              if (!users.some(profile => profile.key === key)) return;
+              const data = item.data();
+              const lastSeenAt = toMillis(data.lastSeen);
+              next[key] = (data.status as Presence) || 'here';
+              nextLastSeen[key] = lastSeenAt;
+              nextOnline[key] = Boolean(data.online) && lastSeenAt > freshAfter;
             });
             setPresence(next);
+            setOnline(nextOnline);
+            setLastSeen(nextLastSeen);
           },
           err => onError(`presence: ${err.message}`)
         );
@@ -259,6 +291,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
     setPatients(data.patients);
     setTasks(data.tasks || []);
     setPresence(data.presence);
+    setOnline({ ...(data.online || defaultOnline), [user]: true });
+    setLastSeen({ ...(data.lastSeen || defaultLastSeen), [user]: now() });
     setEmergency(data.emergency || '');
     setNotices(data.notices || []);
 
@@ -269,6 +303,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       setPatients(next.patients);
       setTasks(next.tasks || []);
       setPresence(next.presence);
+      setOnline({ ...(next.online || defaultOnline), [user]: true });
+      setLastSeen({ ...(next.lastSeen || defaultLastSeen), [user]: now() });
       setEmergency(next.emergency || '');
       setNotices(next.notices || []);
     }, 800);
@@ -278,13 +314,53 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
 
   useEffect(() => {
     if (!user) return;
-    saveLocal({ messages, patients, tasks, presence, emergency, notices });
-  }, [emergency, messages, notices, patients, presence, tasks, user]);
+    saveLocal({ messages, patients, tasks, presence, online, lastSeen, emergency, notices });
+  }, [emergency, lastSeen, messages, notices, online, patients, presence, tasks, user]);
 
   useEffect(() => {
     if (!user) return;
     saveArchive({ messages, patients, tasks });
   }, [messages, patients, tasks, user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const markOnline = async (isOnline: boolean) => {
+      const seenAt = now();
+      setOnline(prev => ({ ...prev, [user]: isOnline }));
+      setLastSeen(prev => ({ ...prev, [user]: seenAt }));
+
+      if (!cloudMode || !db) return;
+      try {
+        await ensureFirebaseAuth();
+        await setDoc(
+          doc(db, 'presence', user),
+          cleanData({
+            status: presence[user] || 'here',
+            online: isOnline,
+            lastSeen: seenAt,
+            name: users.find(item => item.key === user)?.name || user
+          }),
+          { merge: true }
+        );
+      } catch {
+        // Presence should never block chat or patient work.
+      }
+    };
+
+    void markOnline(true);
+    const timer = window.setInterval(() => void markOnline(true), 15000);
+    const leave = () => void markOnline(false);
+    window.addEventListener('pagehide', leave);
+    window.addEventListener('beforeunload', leave);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('pagehide', leave);
+      window.removeEventListener('beforeunload', leave);
+      void markOnline(false);
+    };
+  }, [cloudMode, presence[user || 'valeriia'], user]);
 
   const completePatientTasks = useCallback(
     async (patient: Pick<Patient, 'name' | 'workspace'>) => {
@@ -328,7 +404,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
           await ensureFirebaseAuth();
           await setDoc(
             doc(db, 'presence', user),
-            cleanData({ status, name: users.find(item => item.key === user)?.name || user, updatedAt: now() }),
+            cleanData({ status, online: true, lastSeen: now(), name: users.find(item => item.key === user)?.name || user, updatedAt: now() }),
             { merge: true }
           );
         } catch (err) {
@@ -338,6 +414,22 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
     },
     [cloudMode, onError, user]
   );
+
+  const setMeOffline = useCallback(async () => {
+    if (!user) return;
+    const seenAt = now();
+    setOnline(prev => ({ ...prev, [user]: false }));
+    setLastSeen(prev => ({ ...prev, [user]: seenAt }));
+
+    if (cloudMode && db) {
+      try {
+        await ensureFirebaseAuth();
+        await setDoc(doc(db, 'presence', user), cleanData({ online: false, lastSeen: seenAt, updatedAt: seenAt }), { merge: true });
+      } catch {
+        // Exit should stay fast even if the network is slow.
+      }
+    }
+  }, [cloudMode, user]);
 
   const upsertPatient = useCallback(
     async (workspace: WorkspaceKey, draft: ComposerDraft) => {
@@ -421,11 +513,13 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       }
 
       const messageId = uid();
+      const patientName = draft.patient?.trim() || '';
+      const hasMaterial = Boolean(draft.canvaLink?.trim()) || Boolean(draft.cardLink?.trim());
       const messageData: Omit<Message, 'id'> = {
         workspace,
         author: user,
-        text: draft.text.trim() || (draft.canvaLink?.trim() || draft.cardLink?.trim() ? 'Material link' : draft.file ? 'File attached' : 'Patient update'),
-        patient: draft.patient?.trim() || '',
+        text: draft.text.trim() || (hasMaterial && patientName ? `${patientName} · Material link` : hasMaterial ? 'Material link' : draft.file ? 'File attached' : 'Patient update'),
+        patient: patientName,
         cardLink: draft.cardLink?.trim() || '',
         canvaLink: draft.canvaLink?.trim() || '',
         file,
@@ -595,6 +689,8 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       patients,
       tasks,
       presence,
+      online,
+      lastSeen,
       emergency,
       notices,
       sendMessage,
@@ -603,9 +699,10 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       addTask,
       completeTask,
       setMyPresence,
+      setMeOffline,
       setSystemEmergency,
       addSystemNotice
     }),
-    [addSystemNotice, addTask, cloudMode, completeTask, deleteMessage, emergency, messages, notices, patients, presence, savePatient, sendMessage, setMyPresence, setSystemEmergency, tasks]
+    [addSystemNotice, addTask, cloudMode, completeTask, deleteMessage, emergency, lastSeen, messages, notices, online, patients, presence, savePatient, sendMessage, setMeOffline, setMyPresence, setSystemEmergency, tasks]
   );
 }
