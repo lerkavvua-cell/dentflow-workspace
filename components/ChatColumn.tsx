@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { copy, workspaceNames } from '@/lib/dentflow';
-import type { ComposerDraft, Lang, Message, Patient, Presence, UserKey, WorkspaceKey } from '@/types';
+import type { ComposerDraft, Lang, Message, Patient, Presence, TaskItem, UserKey, WorkspaceKey } from '@/types';
 import ChatComposer from './ChatComposer';
 import ChatMessage from './ChatMessage';
 
@@ -12,8 +12,11 @@ export default function ChatColumn({
   currentUser,
   messages,
   patients,
+  tasks,
   presence,
   onSend,
+  onAddTask,
+  onCompleteTask,
   onSelectPatient
 }: {
   lang: Lang;
@@ -21,16 +24,28 @@ export default function ChatColumn({
   currentUser: UserKey;
   messages: Message[];
   patients: Patient[];
+  tasks: TaskItem[];
   presence: Presence;
   onSend: (workspace: WorkspaceKey, draft: ComposerDraft) => Promise<void>;
+  onAddTask: (workspace: WorkspaceKey, patientName: string, text: string) => Promise<void>;
+  onCompleteTask: (id: string) => Promise<void>;
   onSelectPatient: (id: string) => void;
 }) {
   const t = copy[lang];
   const bodyRef = useRef<HTMLDivElement>(null);
+  const [taskPatient, setTaskPatient] = useState('');
+  const [taskText, setTaskText] = useState('');
+  const canAddTasks = currentUser === 'valeriia';
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
+
+  async function submitTask() {
+    await onAddTask(workspace, taskPatient, taskText);
+    setTaskPatient('');
+    setTaskText('');
+  }
 
   return (
     <section className="chat-column">
@@ -44,6 +59,31 @@ export default function ChatColumn({
         </div>
         <small>{messages.length} {t.messages}</small>
       </header>
+
+      <section className="task-board">
+        <div className="task-title">
+          <strong>{t.tasks}</strong>
+          <span>{tasks.length}</span>
+        </div>
+        {canAddTasks && (
+          <div className="task-form">
+            <input value={taskPatient} onChange={event => setTaskPatient(event.target.value)} placeholder={t.patientTaskName} />
+            <input value={taskText} onChange={event => setTaskText(event.target.value)} placeholder={t.taskPlaceholder} />
+            <button type="button" onClick={submitTask}>{t.addTask}</button>
+          </div>
+        )}
+        <div className="task-list">
+          {tasks.map(task => (
+            <div className="task-item" key={task.id}>
+              <div>
+                <strong>{task.patientName}</strong>
+                <span>{task.text}</span>
+              </div>
+              <button type="button" onClick={() => onCompleteTask(task.id)}>{t.done}</button>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="patient-strip">
         {patients.slice(0, 6).map(patient => (
