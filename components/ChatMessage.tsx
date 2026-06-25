@@ -39,6 +39,8 @@ export default function ChatMessage({
           <span>{author}</span>
           <span>{formatTime(message.createdAt)}</span>
           {message.patient && <span>{message.patient}</span>}
+          {message.syncState === 'local' && <span className="sync-state">локально</span>}
+          {message.syncState === 'pending' && <span className="sync-state">сохраняется</span>}
           {canDelete && (
             <button type="button" onClick={() => onDelete(message.id)}>
               Удалить
