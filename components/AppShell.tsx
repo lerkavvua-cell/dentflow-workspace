@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { copy, statusKeys } from '@/lib/dentflow';
+import { copy, statusKeys, users } from '@/lib/dentflow';
 import { useDentFlowData } from '@/hooks/useDentFlowData';
 import { useNotifications } from '@/hooks/useNotifications';
 import type { Lang, Patient, ThemeKey, UserKey, ViewKey } from '@/types';
@@ -139,6 +139,14 @@ export default function AppShell() {
       )}
       {toast && <div className="toast">{toast}</div>}
       <NotificationCenter notice={notice} label={t.newMessage} />
+      <div className="presence-dock" aria-label="Team presence">
+        {users.map(profile => (
+          <span key={profile.key}>
+            <i className={`presence-dot ${data.presence[profile.key]}`} />
+            {profile.name}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
