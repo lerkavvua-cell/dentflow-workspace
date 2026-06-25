@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { accessCodes, copy, languageNames, themeNames, users } from '@/lib/dentflow';
+import { accessCodes, copy, languageNames, ownerEmail, themeNames, users } from '@/lib/dentflow';
 import type { Lang, ThemeKey, UserKey } from '@/types';
 
 const scenes = ['sun', 'balloons', 'dog', 'cat', 'tree', 'rain', 'cozy'] as const;
@@ -56,9 +56,12 @@ export default function WelcomeScreen({
           <span className="tree-shape" />
           <span className="rain-shape" />
           <span className="cozy-shape" />
+          <span className="heart-shape one" />
+          <span className="heart-shape two" />
         </div>
         <h1>{t.welcome}</h1>
         <p>{t.welcomeText}</p>
+        <p className="welcome-note">Choose your name, enter your email and start the day gently.</p>
 
         <div className="welcome-controls">
           <label>
@@ -98,6 +101,9 @@ export default function WelcomeScreen({
           <input value={email} onChange={event => setEmail(event.target.value)} placeholder="Work email" />
           <input value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 3))} placeholder="3-digit code" inputMode="numeric" />
           <button type="button" onClick={enter}>Enter DentFlow</button>
+          <a href={`mailto:${ownerEmail}?subject=DentFlow registration&body=Name: ${selectedUser}%0AEmail: ${email}`}>
+            Request access
+          </a>
           {error && <small>{error}</small>}
         </div>
       </section>
