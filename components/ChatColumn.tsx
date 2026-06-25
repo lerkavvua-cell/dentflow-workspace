@@ -98,7 +98,14 @@ export default function ChatColumn({
       <div className="message-list" ref={bodyRef}>
         {messages.length === 0 && <p className="muted empty-chat">{t.noMessages}</p>}
         {messages.map(message => (
-          <ChatMessage key={message.id} message={message} currentUser={currentUser} lang={lang} onDelete={onDeleteMessage} />
+          <ChatMessage
+            key={message.id}
+            message={message}
+            currentUser={currentUser}
+            lang={lang}
+            onDelete={onDeleteMessage}
+            onSelectPatient={patientName => onSelectPatient(normalizePatientId(workspace, patientName))}
+          />
         ))}
       </div>
 
