@@ -45,10 +45,19 @@ export type TaskItem = {
   text: string;
   patientName: string;
   patientNameKey?: string;
+  materialLink?: string;
   assignedTo: WorkspaceKey;
   done: boolean;
   createdAt: number;
   completedAt?: number;
+};
+
+export type AccessRequest = {
+  id: string;
+  user: UserKey;
+  email: string;
+  approved: boolean;
+  createdAt: number;
 };
 
 export type Profile = {
