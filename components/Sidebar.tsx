@@ -18,6 +18,7 @@ export default function Sidebar({
 }) {
   const t = copy[lang];
   const profile = users.find(item => item.key === currentUser)!;
+  const availableViews = viewKeys.filter(view => currentUser === 'valeriia' || view !== 'reports');
 
   return (
     <aside className="sidebar">
@@ -38,7 +39,7 @@ export default function Sidebar({
       </div>
 
       <nav className="side-nav" aria-label="DentFlow sections">
-        {viewKeys.map(view => (
+        {availableViews.map(view => (
           <button key={view} className={activeView === view ? 'active' : ''} onClick={() => setView(view)}>
             <span className={`nav-icon ${view}`} />
             {t[view]}
