@@ -1,18 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { copy, languageNames, presenceKeys, themeNames } from '@/lib/dentflow';
-import type { Lang, Presence, ThemeKey, UserKey } from '@/types';
+import { copy, languageNames, presenceKeys, soundNames, themeNames } from '@/lib/dentflow';
+import type { Lang, Presence, SoundKey, ThemeKey, UserKey } from '@/types';
 
 export default function SettingsPanel({
   lang,
   theme,
   soundOn,
+  soundKey,
   presence,
   currentUser,
   setLang,
   setTheme,
   setSoundOn,
+  setSoundKey,
   setPresence,
   sendEmergency,
   sendNotice
@@ -20,11 +22,13 @@ export default function SettingsPanel({
   lang: Lang;
   theme: ThemeKey;
   soundOn: boolean;
+  soundKey: SoundKey;
   presence: Presence;
   currentUser: UserKey;
   setLang: (lang: Lang) => void;
   setTheme: (theme: ThemeKey) => void;
   setSoundOn: (value: boolean) => void;
+  setSoundKey: (sound: SoundKey) => void;
   setPresence: (presence: Presence) => void;
   sendEmergency: (message: string) => Promise<void>;
   sendNotice: (type: 'warning' | 'info', message: string) => Promise<void>;
@@ -72,6 +76,16 @@ export default function SettingsPanel({
         <button className={soundOn ? 'enabled' : ''} onClick={() => setSoundOn(!soundOn)}>
           {soundOn ? t.on : t.off}
         </button>
+      </label>
+      <label>
+        <span>Message sound</span>
+        <select value={soundKey} onChange={event => setSoundKey(event.target.value as SoundKey)}>
+          {Object.entries(soundNames).map(([key, name]) => (
+            <option key={key} value={key}>
+              {name}
+            </option>
+          ))}
+        </select>
       </label>
       {currentUser === 'valeriia' && (
         <div className="emergency-settings">
