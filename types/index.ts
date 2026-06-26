@@ -7,6 +7,7 @@ export type PatientStatus = 'review' | 'correction' | 'approved' | 'sent' | 'arc
 export type Lang = 'ru' | 'en' | 'tr' | 'fa';
 export type ViewKey = 'today' | 'patients' | 'chats' | 'plans' | 'reports' | 'settings';
 export type ThemeKey = 'paper' | 'ocean' | 'forest' | 'sakura' | 'night' | 'swamp' | 'burgundy';
+export type SoundKey = 'soft' | 'bell' | 'pop' | 'chime' | 'bright';
 
 export type FileMeta = {
   fileName: string;
