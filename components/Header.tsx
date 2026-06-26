@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { copy, languageNames, presenceKeys, themeNames } from '@/lib/dentflow';
-import type { Lang, Presence, ThemeKey, UserKey } from '@/types';
+import type { Lang, Presence, SystemNotice, ThemeKey } from '@/types';
 
 export default function Header({
   lang,
@@ -13,6 +14,8 @@ export default function Header({
   setLang,
   setTheme,
   setPresence,
+  notices,
+  onDismissNotice,
   exit
 }: {
   lang: Lang;
@@ -24,9 +27,12 @@ export default function Header({
   setLang: (lang: Lang) => void;
   setTheme: (theme: ThemeKey) => void;
   setPresence: (presence: Presence) => void;
+  notices: SystemNotice[];
+  onDismissNotice: (id: string) => void;
   exit: () => void;
 }) {
   const t = copy[lang];
+  const [noticesOpen, setNoticesOpen] = useState(false);
 
   return (
     <header className="topbar">
@@ -60,6 +66,30 @@ export default function Header({
             </option>
           ))}
         </select>
+        <div className="notice-menu">
+          <button
+            type="button"
+            className={`notice-button ${notices.length ? 'has-unread' : ''}`}
+            onClick={() => setNoticesOpen(value => !value)}
+          >
+            Emergency chat
+            {notices.length > 0 && <span>{notices.length}</span>}
+          </button>
+          {noticesOpen && (
+            <div className="notice-popover">
+              <strong>Important</strong>
+              {notices.length === 0 && <p className="muted">No updates</p>}
+              {notices.map(notice => (
+                <article className={notice.type} key={notice.id}>
+                  <p>{notice.text}</p>
+                  <button type="button" onClick={() => onDismissNotice(notice.id)}>
+                    {t.close}
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
         <button onClick={exit}>{t.exit}</button>
       </div>
     </header>
