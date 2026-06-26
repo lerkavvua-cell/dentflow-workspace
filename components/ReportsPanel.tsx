@@ -17,18 +17,17 @@ function download(name: string, text: string, type: string) {
 
 export default function ReportsPanel({ lang, patients, messages }: { lang: Lang; patients: Patient[]; messages: Message[] }) {
   const t = copy[lang];
+  const reportCopy = copy.en;
   const today = new Date().toISOString().slice(0, 10);
-  const reportRows = patients
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((patient, index) => `${index + 1}. ${patient.name} — ${t[patient.status]}`);
+  const sortedPatients = patients.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const reportRows = sortedPatients.map((patient, index) => `${index + 1}. ${patient.name} - ${reportCopy[patient.status]}`);
 
   function exportCsv() {
     const rows = [
       ['patient name', 'status', 'doctor', 'agent', 'patient card link', 'Canva link', 'notes', 'workspace', 'createdAt', 'updatedAt'],
       ...patients.map(patient => [
         patient.name,
-        patient.status,
+        reportCopy[patient.status],
         patient.doctor || '',
         patient.agent || '',
         patient.cardLink || '',
@@ -67,12 +66,8 @@ export default function ReportsPanel({ lang, patients, messages }: { lang: Lang;
         </head>
         <body>
           <h1>DentFlow</h1>
-          <p>${t.reportPreview} · ${today}</p>
-          <ol>${patients
-            .slice()
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map(patient => `<li>${patient.name} — ${t[patient.status]}</li>`)
-            .join('')}</ol>
+          <p>Short report - ${today}</p>
+          <ol>${sortedPatients.map(patient => `<li>${patient.name} - ${reportCopy[patient.status]}</li>`).join('')}</ol>
         </body>
       </html>
     `;
@@ -98,15 +93,12 @@ export default function ReportsPanel({ lang, patients, messages }: { lang: Lang;
         <h4>{t.reportPreview}</h4>
         {reportRows.length === 0 && <p className="muted">{t.noPatients}</p>}
         <ol>
-          {patients
-            .slice()
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map(patient => (
-              <li key={patient.id}>
-                <strong>{patient.name}</strong>
-                <span>{t[patient.status]}</span>
-              </li>
-            ))}
+          {sortedPatients.map(patient => (
+            <li key={patient.id}>
+              <strong>{patient.name}</strong>
+              <span>{reportCopy[patient.status]}</span>
+            </li>
+          ))}
         </ol>
       </div>
     </section>
