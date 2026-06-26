@@ -41,6 +41,14 @@ export const viewKeys: ViewKey[] = ['today', 'patients', 'chats', 'plans', 'repo
 export const statusKeys: PatientStatus[] = ['review', 'correction', 'approved', 'sent', 'archived'];
 export const presenceKeys: Presence[] = ['here', 'break', 'lunch', 'busy', 'finished'];
 
+export const soundNames = {
+  soft: 'Soft',
+  bell: 'Bell',
+  pop: 'Pop',
+  chime: 'Chime',
+  bright: 'Bright'
+};
+
 export const accessCodes: Record<UserKey, string> = {
   valeriia: '101',
   behnia: '202',
