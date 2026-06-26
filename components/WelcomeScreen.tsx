@@ -52,6 +52,11 @@ export default function WelcomeScreen({
           <span className="cozy-shape" />
           <span className="heart-shape one" />
           <span className="heart-shape two" />
+          <span className="bubble-shape one" />
+          <span className="bubble-shape two" />
+          <span className="cube-shape one" />
+          <span className="cube-shape two" />
+          <span className="welcome-dog" />
         </div>
         <h1>{t.welcome}</h1>
         <p>{t.welcomeText}</p>
