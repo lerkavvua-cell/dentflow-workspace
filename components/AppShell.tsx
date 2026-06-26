@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { copy, statusKeys, users } from '@/lib/dentflow';
+import { copy, statusKeys } from '@/lib/dentflow';
 import { useDentFlowData } from '@/hooks/useDentFlowData';
 import { useNotifications } from '@/hooks/useNotifications';
-import type { Lang, Patient, ThemeKey, UserKey, ViewKey } from '@/types';
+import type { Lang, Patient, SoundKey, ThemeKey, UserKey, ViewKey } from '@/types';
 import ChatWorkspace from './ChatWorkspace';
 import Dashboard from './Dashboard';
 import Header from './Header';
@@ -23,7 +23,9 @@ export default function AppShell() {
   const [query, setQuery] = useState('');
   const [activePatientId, setActivePatientId] = useState('');
   const [soundOn, setSoundOn] = useState(true);
+  const [soundKey, setSoundKey] = useState<SoundKey>('soft');
   const [toast, setToast] = useState('');
+  const [dismissedNotices, setDismissedNotices] = useState<string[]>([]);
   const t = copy[lang];
 
   const showError = useCallback(
@@ -35,7 +37,8 @@ export default function AppShell() {
   );
 
   const data = useDentFlowData(user, showError);
-  const notice = useNotifications(data.messages, user, soundOn);
+  const notice = useNotifications(data.messages, user, soundOn, soundKey);
+  const visibleNotices = data.notices.filter(item => !dismissedNotices.includes(item.id));
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -45,6 +48,10 @@ export default function AppShell() {
 
   useEffect(() => {
     if (user && user !== 'valeriia' && view === 'reports') setView('chats');
+  }, [user, view]);
+
+  useEffect(() => {
+    if (user && user !== 'valeriia' && view === 'plans') setView('chats');
   }, [user, view]);
 
   const filtered = useMemo(() => {
@@ -96,6 +103,8 @@ export default function AppShell() {
           setLang={setLang}
           setTheme={setTheme}
           setPresence={data.setMyPresence}
+          notices={visibleNotices}
+          onDismissNotice={id => setDismissedNotices(prev => (prev.includes(id) ? prev : [...prev, id]))}
           exit={async () => {
             await data.setMeOffline();
             setUser(null);
@@ -115,6 +124,7 @@ export default function AppShell() {
                 online={data.online}
                 onSend={data.sendMessage}
                 onDeleteMessage={data.deleteMessage}
+                onMovePatient={data.movePatient}
                 onAddTask={data.addTask}
                 onCompleteTask={data.completeTask}
                 onSelectPatient={setActivePatientId}
@@ -128,11 +138,13 @@ export default function AppShell() {
                 lang={lang}
                 theme={theme}
                 soundOn={soundOn}
+                soundKey={soundKey}
                 presence={data.presence[user]}
                 currentUser={user}
                 setLang={setLang}
                 setTheme={setTheme}
                 setSoundOn={setSoundOn}
+                setSoundKey={setSoundKey}
                 setPresence={data.setMyPresence}
                 sendEmergency={data.setSystemEmergency}
                 sendNotice={data.addSystemNotice}
@@ -144,17 +156,8 @@ export default function AppShell() {
       </main>
 
       {data.emergency && <SoftAlert title={t.emergencyTitle} text={data.emergency} close={() => data.setSystemEmergency('')} />}
-      <NoticeFeed notices={data.notices} />
       {toast && <div className="toast">{toast}</div>}
       <NotificationCenter notice={notice} label={t.newMessage} />
-      <div className="presence-dock" aria-label="Team presence">
-        {users.map(profile => (
-          <span key={profile.key}>
-            <i className={`presence-dot ${data.online[profile.key] ? 'online' : 'offline'} ${data.presence[profile.key]}`} />
-            {profile.name} · {data.online[profile.key] ? t.online : t.offline}
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
@@ -165,20 +168,6 @@ function SoftAlert({ title, text, close }: { title: string; text: string; close:
       <strong>{title}</strong>
       <p>{text}</p>
       <button type="button" onClick={close}>OK</button>
-    </aside>
-  );
-}
-
-function NoticeFeed({ notices }: { notices: { id: string; type: 'warning' | 'info'; text: string; createdAt: number }[] }) {
-  if (notices.length === 0) return null;
-  return (
-    <aside className="notice-feed">
-      <strong>Important</strong>
-      <div>
-        {notices.slice(0, 8).map(notice => (
-          <p className={notice.type} key={notice.id}>{notice.text}</p>
-        ))}
-      </div>
     </aside>
   );
 }
