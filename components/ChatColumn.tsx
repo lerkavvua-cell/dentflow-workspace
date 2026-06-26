@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { DragEvent, useEffect, useRef, useState } from 'react';
 import { copy, normalizePatientId, workspaceNames } from '@/lib/dentflow';
 import type { ComposerDraft, Lang, Message, Patient, Presence, TaskItem, UserKey, WorkspaceKey } from '@/types';
 import ChatComposer from './ChatComposer';
@@ -17,6 +17,8 @@ export default function ChatColumn({
   online,
   onSend,
   onDeleteMessage,
+  onMovePatient,
+  onForwardMessage,
   onAddTask,
   onCompleteTask,
   onSelectPatient
@@ -31,6 +33,8 @@ export default function ChatColumn({
   online: boolean;
   onSend: (workspace: WorkspaceKey, draft: ComposerDraft) => Promise<void>;
   onDeleteMessage: (id: string) => Promise<void>;
+  onMovePatient: (id: string, workspace: WorkspaceKey) => Promise<void>;
+  onForwardMessage: (id: string, workspace: WorkspaceKey) => Promise<void>;
   onAddTask: (workspace: WorkspaceKey, patientName: string, text: string, materialLink?: string) => Promise<void>;
   onCompleteTask: (id: string) => Promise<void>;
   onSelectPatient: (id: string) => void;
@@ -39,6 +43,7 @@ export default function ChatColumn({
   const bodyRef = useRef<HTMLDivElement>(null);
   const [taskPatient, setTaskPatient] = useState('');
   const [taskLink, setTaskLink] = useState('');
+  const [dragOver, setDragOver] = useState(false);
   const canAddTasks = currentUser === 'valeriia';
 
   useEffect(() => {
@@ -51,8 +56,27 @@ export default function ChatColumn({
     setTaskLink('');
   }
 
+  async function handleDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setDragOver(false);
+    const type = event.dataTransfer.getData('application/dentflow-type');
+    const id = event.dataTransfer.getData('application/dentflow-id');
+    if (type === 'patient' && id) await onMovePatient(id, workspace);
+    if (type === 'message' && id) await onForwardMessage(id, workspace);
+  }
+
   return (
-    <section className="chat-column">
+    <section
+      className={`chat-column ${dragOver ? 'drag-over' : ''}`}
+      onDragOver={event => {
+        event.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={event => {
+        if (event.currentTarget === event.target) setDragOver(false);
+      }}
+      onDrop={handleDrop}
+    >
       <header className="chat-head">
         <div>
           <h3>{workspaceNames[workspace]}</h3>
@@ -91,7 +115,16 @@ export default function ChatColumn({
 
       <div className="patient-strip">
         {patients.slice(0, 6).map(patient => (
-          <button className={`patient-chip ${patient.status}`} key={patient.id} onClick={() => onSelectPatient(patient.id)}>
+          <button
+            className={`patient-chip ${patient.status}`}
+            key={patient.id}
+            draggable
+            onDragStart={event => {
+              event.dataTransfer.setData('application/dentflow-type', 'patient');
+              event.dataTransfer.setData('application/dentflow-id', patient.id);
+            }}
+            onClick={() => onSelectPatient(patient.id)}
+          >
             {patient.name} · {t[patient.status]}
           </button>
         ))}
@@ -107,6 +140,10 @@ export default function ChatColumn({
             lang={lang}
             onDelete={onDeleteMessage}
             onSelectPatient={patientName => onSelectPatient(normalizePatientId(workspace, patientName))}
+            onDragStart={event => {
+              event.dataTransfer.setData('application/dentflow-type', 'message');
+              event.dataTransfer.setData('application/dentflow-id', message.id);
+            }}
           />
         ))}
       </div>
