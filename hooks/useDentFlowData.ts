@@ -618,6 +618,13 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
     [addSystemNotice, cloudMode, completePatientTasks, onError, patients]
   );
 
+  const movePatient = useCallback(
+    async (id: string, workspace: WorkspaceKey) => {
+      await savePatient(id, { workspace });
+    },
+    [savePatient]
+  );
+
   const addTask = useCallback(
     async (workspace: WorkspaceKey, patientName: string, text: string, materialLink?: string) => {
       if (!user || !patientName.trim() || (!text.trim() && !materialLink?.trim())) return;
@@ -696,6 +703,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       sendMessage,
       deleteMessage,
       savePatient,
+      movePatient,
       addTask,
       completeTask,
       setMyPresence,
@@ -703,6 +711,6 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       setSystemEmergency,
       addSystemNotice
     }),
-    [addSystemNotice, addTask, cloudMode, completeTask, deleteMessage, emergency, lastSeen, messages, notices, online, patients, presence, savePatient, sendMessage, setMeOffline, setMyPresence, setSystemEmergency, tasks]
+    [addSystemNotice, addTask, cloudMode, completeTask, deleteMessage, emergency, lastSeen, messages, movePatient, notices, online, patients, presence, savePatient, sendMessage, setMeOffline, setMyPresence, setSystemEmergency, tasks]
   );
 }
