@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { Message, UserKey } from '@/types';
+import type { Message, SoundKey, UserKey } from '@/types';
 import { users } from '@/lib/dentflow';
 
 export type Notice = {
@@ -11,20 +11,31 @@ export type Notice = {
   urgent: boolean;
 };
 
-function beep() {
+const soundPatterns: Record<SoundKey, number[]> = {
+  soft: [620],
+  bell: [820, 620],
+  pop: [420, 760],
+  chime: [660, 880, 990],
+  bright: [920, 1040]
+};
+
+function beep(sound: SoundKey) {
   const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
   const ctx = new AudioContextClass();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.frequency.value = 740;
-  gain.gain.value = 0.035;
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.12);
+  soundPatterns[sound].forEach((frequency, index) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = frequency;
+    gain.gain.value = 0.028;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const start = ctx.currentTime + index * 0.11;
+    osc.start(start);
+    osc.stop(start + 0.09);
+  });
 }
 
-export function useNotifications(messages: Message[], currentUser: UserKey | null, soundOn: boolean) {
+export function useNotifications(messages: Message[], currentUser: UserKey | null, soundOn: boolean, soundKey: SoundKey) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const seen = useRef(false);
   const lastIds = useRef<Set<string>>(new Set());
@@ -46,10 +57,10 @@ export function useNotifications(messages: Message[], currentUser: UserKey | nul
     const author = users.find(item => item.key === incoming.author)?.name || incoming.author;
     const urgent = /@\S+|urgent|сроч|экстр|acil/i.test(incoming.text);
     setNotice({ id: incoming.id, animal: 'dog', author, urgent });
-    if (soundOn) beep();
+    if (soundOn) beep(soundKey);
     const timer = window.setTimeout(() => setNotice(null), 5200);
     return () => window.clearTimeout(timer);
-  }, [currentUser, messages, soundOn]);
+  }, [currentUser, messages, soundKey, soundOn]);
 
   return notice;
 }
