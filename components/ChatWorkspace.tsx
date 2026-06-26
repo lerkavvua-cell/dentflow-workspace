@@ -14,6 +14,7 @@ export default function ChatWorkspace({
   online,
   onSend,
   onDeleteMessage,
+  onMovePatient,
   onAddTask,
   onCompleteTask,
   onSelectPatient
@@ -27,10 +28,23 @@ export default function ChatWorkspace({
   online: OnlineMap;
   onSend: (workspace: WorkspaceKey, draft: ComposerDraft) => Promise<void>;
   onDeleteMessage: (id: string) => Promise<void>;
+  onMovePatient: (id: string, workspace: WorkspaceKey) => Promise<void>;
   onAddTask: (workspace: WorkspaceKey, patientName: string, text: string, materialLink?: string) => Promise<void>;
   onCompleteTask: (id: string) => Promise<void>;
   onSelectPatient: (id: string) => void;
 }) {
+  async function forwardMessage(messageId: string, workspace: WorkspaceKey) {
+    const message = messages.find(item => item.id === messageId);
+    if (!message || message.workspace === workspace || message.deleted) return;
+    await onSend(workspace, {
+      text: message.text,
+      patient: message.patient || '',
+      cardLink: message.cardLink || '',
+      canvaLink: message.canvaLink || '',
+      file: null
+    });
+  }
+
   return (
     <section className="chat-workspace">
       {workspaces.map(workspace => (
@@ -46,6 +60,8 @@ export default function ChatWorkspace({
           online={online[workspace]}
           onSend={onSend}
           onDeleteMessage={onDeleteMessage}
+          onMovePatient={onMovePatient}
+          onForwardMessage={forwardMessage}
           onAddTask={onAddTask}
           onCompleteTask={onCompleteTask}
           onSelectPatient={onSelectPatient}
