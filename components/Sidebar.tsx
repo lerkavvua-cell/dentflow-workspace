@@ -22,7 +22,7 @@ export default function Sidebar({
 }) {
   const t = copy[lang];
   const profile = users.find(item => item.key === currentUser)!;
-  const availableViews = viewKeys.filter(view => currentUser === 'valeriia' || view !== 'reports');
+  const availableViews = viewKeys.filter(view => currentUser === 'valeriia' || (view !== 'reports' && view !== 'plans'));
 
   return (
     <aside className="sidebar">
