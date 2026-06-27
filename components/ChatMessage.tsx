@@ -17,11 +17,16 @@ function renderText(text: string) {
   );
 }
 
+function shortText(text: string) {
+  return text.length > 96 ? `${text.slice(0, 96)}...` : text;
+}
+
 export default function ChatMessage({
   message,
   currentUser,
   lang,
   onDelete,
+  onReply,
   onSelectPatient,
   onDragStart
 }: {
@@ -29,14 +34,16 @@ export default function ChatMessage({
   currentUser: UserKey;
   lang: Lang;
   onDelete: (id: string) => Promise<void>;
+  onReply?: (message: Message) => void;
   onSelectPatient?: (patientName: string) => void;
   onDragStart?: DragEventHandler<HTMLElement>;
 }) {
   const t = copy[lang];
   const author = users.find(item => item.key === message.author)?.name || message.author;
+  const replyAuthor = message.replyTo ? users.find(item => item.key === message.replyTo?.author)?.name || message.replyTo.author : '';
   const hasMention = /@[^\s@]+/.test(message.text);
   const canDelete = !message.deleted && (message.author === currentUser || currentUser === 'valeriia');
-  const patientPrefix = message.patient ? `${message.patient} · ` : '';
+  const patientPrefix = message.patient ? `${message.patient} - ` : '';
 
   return (
     <article
@@ -65,6 +72,18 @@ export default function ChatMessage({
           )}
           {message.syncState === 'local' && <span className="sync-state">локально</span>}
           {message.syncState === 'pending' && <span className="sync-state">сохраняется</span>}
+          {!message.deleted && (
+            <button
+              type="button"
+              className="reply-button"
+              onClick={event => {
+                event.stopPropagation();
+                onReply?.(message);
+              }}
+            >
+              Ответить
+            </button>
+          )}
           {canDelete && (
             <button
               type="button"
@@ -77,6 +96,12 @@ export default function ChatMessage({
             </button>
           )}
         </div>
+        {message.replyTo && !message.deleted && (
+          <div className="reply-quote">
+            <strong>{replyAuthor}</strong>
+            <span>{message.replyTo.patient ? `${message.replyTo.patient} - ` : ''}{shortText(message.replyTo.text)}</span>
+          </div>
+        )}
         <p>{message.deleted ? 'Сообщение удалено' : renderText(message.text)}</p>
         {!message.deleted && (message.cardLink || message.canvaLink || message.file) && (
           <div className="message-links">
