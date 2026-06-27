@@ -518,6 +518,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
       const messageData: Omit<Message, 'id'> = {
         workspace,
         author: user,
+        replyTo: draft.replyTo,
         text: draft.text.trim() || (hasMaterial && patientName ? `${patientName} · Material link` : hasMaterial ? 'Material link' : draft.file ? 'File attached' : 'Patient update'),
         patient: patientName,
         cardLink: draft.cardLink?.trim() || '',
@@ -568,6 +569,7 @@ export function useDentFlowData(user: UserKey | null, onError: (message: string)
     async (id: string) => {
       if (!user) return;
       const patch = cleanData({
+        replyTo: null,
         text: 'Сообщение удалено',
         patient: '',
         cardLink: '',
