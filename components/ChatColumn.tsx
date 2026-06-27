@@ -82,10 +82,9 @@ export default function ChatColumn({
           <h3>{workspaceNames[workspace]}</h3>
           <span>
             <i className={`presence-dot ${online ? 'online' : 'offline'} ${presence}`} />
-            {online ? t.online : t.offline} · {t[presence]}
+            {online ? t.online : t.offline} - {t[presence]}
           </span>
         </div>
-        <small>{messages.length} {t.messages}</small>
       </header>
 
       <section className="task-board">
@@ -125,7 +124,7 @@ export default function ChatColumn({
             }}
             onClick={() => onSelectPatient(patient.id)}
           >
-            {patient.name} · {t[patient.status]}
+            {patient.name} - {t[patient.status]}
           </button>
         ))}
       </div>
