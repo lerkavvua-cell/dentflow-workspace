@@ -44,6 +44,7 @@ export default function ChatColumn({
   const [taskPatient, setTaskPatient] = useState('');
   const [taskLink, setTaskLink] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message['replyTo']>();
   const canAddTasks = currentUser === 'valeriia';
 
   useEffect(() => {
@@ -138,6 +139,14 @@ export default function ChatColumn({
             currentUser={currentUser}
             lang={lang}
             onDelete={onDeleteMessage}
+            onReply={target => {
+              setReplyTo({
+                messageId: target.id,
+                author: target.author,
+                text: target.text,
+                patient: target.patient
+              });
+            }}
             onSelectPatient={patientName => onSelectPatient(normalizePatientId(workspace, patientName))}
             onDragStart={event => {
               event.dataTransfer.setData('application/dentflow-type', 'message');
@@ -149,8 +158,11 @@ export default function ChatColumn({
 
       <ChatComposer
         lang={lang}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(undefined)}
         onSend={async draft => {
           await onSend(workspace, draft);
+          setReplyTo(undefined);
           if (draft.patient?.trim()) onSelectPatient(normalizePatientId(workspace, draft.patient));
         }}
       />
