@@ -21,6 +21,12 @@ export type Message = {
   workspace: WorkspaceKey;
   author: UserKey;
   text: string;
+  replyTo?: {
+    messageId: string;
+    author: UserKey;
+    text: string;
+    patient?: string;
+  };
   patient?: string;
   cardLink?: string;
   canvaLink?: string;
@@ -82,6 +88,7 @@ export type Profile = {
 
 export type ComposerDraft = {
   text: string;
+  replyTo?: Message['replyTo'];
   patient?: string;
   cardLink?: string;
   canvaLink?: string;
