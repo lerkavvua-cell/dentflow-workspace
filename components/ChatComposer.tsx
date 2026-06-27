@@ -1,14 +1,31 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { copy } from '@/lib/dentflow';
-import type { ComposerDraft, Lang } from '@/types';
+import { copy, users } from '@/lib/dentflow';
+import type { ComposerDraft, Lang, Message } from '@/types';
 
-export default function ChatComposer({ lang, onSend }: { lang: Lang; onSend: (draft: ComposerDraft) => Promise<void> }) {
+const emojiSet = ['😊', '👍', '🙏', '❤️', '✅', '👀', '🦷'];
+
+export default function ChatComposer({
+  lang,
+  replyTo,
+  onCancelReply,
+  onSend
+}: {
+  lang: Lang;
+  replyTo?: Message['replyTo'];
+  onCancelReply?: () => void;
+  onSend: (draft: ComposerDraft) => Promise<void>;
+}) {
   const t = copy[lang];
   const [draft, setDraft] = useState<ComposerDraft>({ text: '', patient: '', cardLink: '', canvaLink: '', file: null });
   const [sending, setSending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const replyAuthor = replyTo ? users.find(item => item.key === replyTo.author)?.name || replyTo.author : '';
+
+  function addEmoji(emoji: string) {
+    setDraft(prev => ({ ...prev, text: `${prev.text}${prev.text.endsWith(' ') || !prev.text ? '' : ' '}${emoji} ` }));
+  }
 
   async function submit() {
     const hasPayload =
@@ -20,8 +37,9 @@ export default function ChatComposer({ lang, onSend }: { lang: Lang; onSend: (dr
     if (!hasPayload || sending) return;
     setSending(true);
     try {
-      await onSend(draft);
+      await onSend({ ...draft, replyTo });
       setDraft({ text: '', patient: '', cardLink: '', canvaLink: '', file: null });
+      onCancelReply?.();
       if (inputRef.current) inputRef.current.value = '';
     } finally {
       setSending(false);
@@ -30,10 +48,26 @@ export default function ChatComposer({ lang, onSend }: { lang: Lang; onSend: (dr
 
   return (
     <div className="composer">
+      {replyTo && (
+        <div className="reply-draft">
+          <div>
+            <strong>{replyAuthor}</strong>
+            <span>{replyTo.patient ? `${replyTo.patient} - ` : ''}{replyTo.text}</span>
+          </div>
+          <button type="button" onClick={onCancelReply} aria-label="Cancel reply">x</button>
+        </div>
+      )}
+      <div className="emoji-row" aria-label="Emoji">
+        {emojiSet.map(emoji => (
+          <button type="button" key={emoji} onClick={() => addEmoji(emoji)}>
+            {emoji}
+          </button>
+        ))}
+      </div>
       <textarea
         value={draft.text}
         onChange={event => setDraft(prev => ({ ...prev, text: event.target.value }))}
-        placeholder={t.message}
+        placeholder={replyTo ? 'Ответ на сообщение' : t.message}
         onKeyDown={event => {
           if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
