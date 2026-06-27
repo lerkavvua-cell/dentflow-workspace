@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { Message, SoundKey, UserKey } from '@/types';
 import { users } from '@/lib/dentflow';
+import type { Message, SoundKey, UserKey } from '@/types';
 
 export type Notice = {
   id: string;
@@ -54,11 +54,13 @@ export function useNotifications(messages: Message[], currentUser: UserKey | nul
     lastIds.current = ids;
 
     if (!incoming) return;
+    const isTagged = /@\S+|urgent|сроч|экстр|acil/i.test(incoming.text);
+    if (!isTagged) return;
+
     const author = users.find(item => item.key === incoming.author)?.name || incoming.author;
-    const urgent = /@\S+|urgent|сроч|экстр|acil/i.test(incoming.text);
-    setNotice({ id: incoming.id, animal: 'dog', author, urgent });
+    setNotice({ id: incoming.id, animal: 'dog', author, urgent: true });
     if (soundOn) beep(soundKey);
-    const timer = window.setTimeout(() => setNotice(null), 5200);
+    const timer = window.setTimeout(() => setNotice(null), 3600);
     return () => window.clearTimeout(timer);
   }, [currentUser, messages, soundKey, soundOn]);
 
