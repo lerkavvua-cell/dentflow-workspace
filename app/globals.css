@@ -335,10 +335,10 @@ a { color: inherit; }
 }
 
 .notice-popover {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 10px);
-  z-index: 60;
+  position: fixed;
+  right: 118px;
+  top: 142px;
+  z-index: 1200;
   width: min(330px, calc(100vw - 36px));
   display: grid;
   gap: 9px;
@@ -892,7 +892,7 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   gap: 12px;
-  animation: slideUp .35s ease;
+  animation: slideUp .35s ease, toastAway .35s ease 3.25s forwards;
 }
 
 .notification.urgent {
@@ -1147,6 +1147,7 @@ a { color: inherit; }
   text-align: center;
   position: relative;
   overflow: hidden;
+  color: var(--text);
   box-shadow: 0 34px 100px rgba(31, 26, 20, .16), inset 0 1px 0 rgba(255,255,255,.65);
 }
 
@@ -1183,9 +1184,29 @@ a { color: inherit; }
   margin-top: 8px;
   padding: 8px 12px;
   border-radius: 999px;
-  color: var(--text) !important;
-  background: color-mix(in srgb, var(--accent-2) 12%, white);
+  color: #20202a !important;
+  background: rgba(255, 255, 255, .9);
   font-weight: 800;
+}
+
+[data-theme="night"] .welcome-panel,
+[data-theme="swamp"] .welcome-panel,
+[data-theme="burgundy"] .welcome-panel {
+  color: #fffaf2;
+}
+
+[data-theme="night"] .welcome-panel p,
+[data-theme="swamp"] .welcome-panel p,
+[data-theme="burgundy"] .welcome-panel p {
+  color: rgba(255, 250, 242, .78);
+}
+
+[data-theme="night"] .welcome-note,
+[data-theme="swamp"] .welcome-note,
+[data-theme="burgundy"] .welcome-note {
+  color: #fffaf2 !important;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .2);
 }
 
 .welcome-scene {
@@ -1296,6 +1317,46 @@ a { color: inherit; }
   transform-origin: 50% 95%;
   animation: wavePaw .78s ease-in-out infinite;
 }
+
+.tooth-dentist {
+  position: absolute;
+  z-index: 3;
+  width: 38px;
+  height: 44px;
+  border-radius: 44% 44% 52% 52% / 40% 40% 62% 62%;
+  background: linear-gradient(160deg, #ffffff, #f1fbff);
+  box-shadow: inset 0 -8px 12px rgba(120, 150, 160, .16), 0 12px 22px rgba(68, 54, 40, .12);
+  animation: toothFloat 4.6s ease-in-out infinite;
+}
+
+.tooth-dentist::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 14px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #3a3442;
+  box-shadow: 13px 0 #3a3442;
+}
+
+.tooth-dentist::after {
+  content: "";
+  position: absolute;
+  right: -14px;
+  top: 10px;
+  width: 22px;
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 50%, white);
+  transform-origin: left center;
+  animation: toothTool 1.4s ease-in-out infinite;
+}
+
+.tooth-dentist.one { left: 76px; bottom: 28px; }
+.tooth-dentist.two { right: 104px; top: 34px; width: 32px; height: 38px; animation-delay: .8s; }
+.tooth-dentist.three { right: 190px; bottom: 24px; width: 34px; height: 40px; animation-delay: 1.4s; }
 
 .sun .sun-shape {
   opacity: 1;
@@ -1531,6 +1592,9 @@ a { color: inherit; }
 @keyframes bubbleRise { 50% { transform: translateY(-22px) scale(1.08); opacity: .78; } }
 @keyframes cubeRoll { 50% { transform: translateX(28px) rotate(28deg); } }
 @keyframes mailBlink { 50% { filter: brightness(1.08); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 18%, transparent), var(--soft); } }
+@keyframes toastAway { to { transform: translateY(18px); opacity: 0; pointer-events: none; } }
+@keyframes toothFloat { 50% { transform: translateY(-8px) rotate(2deg); } }
+@keyframes toothTool { 50% { transform: rotate(-16deg) translateY(-2px); } }
 
 @media (max-width: 1360px) {
   .app-shell { grid-template-columns: 238px minmax(0, 1fr); }
